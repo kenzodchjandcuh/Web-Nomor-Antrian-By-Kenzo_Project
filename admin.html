@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Antrian Cerdas - Admin Dashboard</title>
+    <meta name="description" content="Dashboard kontrol admin untuk memanggil dan mengatur nomor antrian.">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Admin specific styles */
+        #dashboard-section {
+            display: none; /* Hidden by default until login */
+            width: 100%;
+            max-width: 800px;
+        }
+        
+        .login-card {
+            max-width: 400px;
+            width: 100%;
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .controls-grid .btn {
+            width: 100%;
+            padding: 1.2rem;
+        }
+
+        .btn-full {
+            grid-column: 1 / -1;
+        }
+        
+        .header-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .skipped-list {
+            margin-top: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .skipped-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 0.8rem 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .btn-small {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-glow"></div>
+    <div class="bg-glow-2"></div>
+
+    <header>
+        <h1><i class="fa-solid fa-layer-group"></i> AntrianPro</h1>
+        <nav class="nav-links">
+            <a href="index.html">Display</a>
+            <a href="admin.html" class="active">Admin Login</a>
+        </nav>
+    </header>
+
+    <main>
+        <!-- Login Section -->
+        <div class="glass-card login-card" id="login-section">
+            <h2 style="margin-bottom: 2rem; color: var(--text-main);">Admin Login</h2>
+            <div id="login-error" style="color: var(--danger); margin-bottom: 1rem; display: none;">Password salah!</div>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="password">Masukan Password</label>
+                    <input type="password" id="password" class="form-control" placeholder="Masukkan password" required>
+                </div>
+                <div style="text-align: right; margin-top: 0.5rem; margin-bottom: 1.5rem;">
+                    <a href="#" id="link-forgot" style="color: var(--primary); text-decoration: none; font-size: 0.9rem;">Lupa Password?</a>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">
+                    <i class="fa-solid fa-right-to-bracket"></i> Masuk
+                </button>
+            </form>
+        </div>
+
+        <!-- Dashboard Section -->
+        <div class="glass-card" id="dashboard-section">
+            <div class="header-actions">
+                <h2 style="color: var(--text-main);">Dashboard Kendali</h2>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn btn-outline" id="btn-info" style="padding: 0.5rem 1rem; font-size: 0.9rem;">
+                        <i class="fa-solid fa-user-gear"></i> Info Akun
+                    </button>
+                    <button class="btn btn-outline" id="btn-logout" style="padding: 0.5rem 1rem; font-size: 0.9rem;">
+                        <i class="fa-solid fa-right-from-bracket"></i> Keluar
+                    </button>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-label">Nomor Saat Ini</div>
+                    <div class="stat-value" id="admin-current-queue" style="color: var(--primary);">A-000</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Total Antrian Hari Ini</div>
+                    <div class="stat-value" id="admin-total-queue">0</div>
+                </div>
+            </div>
+
+            <!-- Custom Ubah Nomor -->
+            <div style="background: rgba(0,0,0,0.2); padding: 1.5rem; border-radius: 16px; border: 1px solid var(--glass-border); margin-bottom: 1rem;">
+                <label style="display:block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">Lompat ke Nomor Tertentu (Opsional)</label>
+                <div style="display: flex; gap: 1rem;">
+                    <input type="number" id="custom-number" class="form-control" placeholder="Contoh: 5" min="1">
+                    <button class="btn btn-outline" id="btn-set-custom" style="white-space: nowrap;">
+                        <i class="fa-solid fa-pen-to-square"></i> Ubah Nomor
+                    </button>
+                </div>
+            </div>
+
+            <div class="controls-grid" style="margin-bottom: 2rem;">
+                <button class="btn btn-primary btn-full" id="btn-call-next" style="font-size: 1.2rem;">
+                    <i class="fa-solid fa-bullhorn"></i> Panggil Berikutnya
+                </button>
+                
+                <button class="btn btn-outline" id="btn-recall">
+                    <i class="fa-solid fa-rotate-right"></i> Panggil Ulang
+                </button>
+                
+                <button class="btn btn-outline" id="btn-skip" style="color: #c084fc; border-color: rgba(192, 132, 252, 0.5);">
+                    <i class="fa-solid fa-forward-step"></i> Lewati (Tidak Hadir)
+                </button>
+                
+                <button class="btn btn-danger btn-full" id="btn-reset" style="margin-top: 1rem;">
+                    <i class="fa-solid fa-trash-can"></i> Reset Antrian
+                </button>
+            </div>
+
+            <!-- Daftar Dilewati -->
+            <div style="background: rgba(0,0,0,0.2); padding: 1.5rem; border-radius: 16px; border: 1px solid var(--glass-border);">
+                <h3 style="color: var(--text-main); font-size: 1.1rem; margin-bottom: 1rem;">Daftar Antrian Dilewati / Tertunda</h3>
+                <div class="skipped-list" id="skipped-list-container">
+                    <p style="color: var(--text-muted); font-size: 0.9rem; text-align: center;">Tidak ada antrian yang dilewati</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Info Akun Modal -->
+    <div class="modal-overlay" id="info-modal">
+        <div class="modal-content" style="max-width: 400px; text-align: left;">
+            <h3 style="margin-bottom: 1.5rem; color: var(--text-main);"><i class="fa-solid fa-user-gear"></i> Info Akun Admin</h3>
+            <div class="form-group">
+                <label>Nomor HP Pemulihan</label>
+                <input type="text" id="info-phone" class="form-control" placeholder="Contoh: 081234567890">
+            </div>
+            <div class="form-group">
+                <label>Password Baru (Kosongkan jika tidak ingin mengubah)</label>
+                <input type="password" id="info-password" class="form-control" placeholder="Password Baru">
+            </div>
+            <div style="display: flex; gap: 0.5rem; margin-top: 2rem;">
+                <button class="btn btn-primary" id="btn-save-info" style="flex: 1;">Simpan</button>
+                <button class="btn btn-outline" id="btn-close-info" style="flex: 1;">Batal</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Forgot Password Modal -->
+    <div class="modal-overlay" id="forgot-modal">
+        <div class="modal-content" style="max-width: 400px; text-align: left;">
+            <h3 style="margin-bottom: 1.5rem; color: var(--text-main);"><i class="fa-solid fa-key"></i> Lupa Password</h3>
+            
+            <div id="forgot-step-1">
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">Masukkan nomor HP yang terdaftar untuk menerima kode OTP.</p>
+                <div class="form-group">
+                    <label>Nomor HP</label>
+                    <input type="text" id="forgot-phone" class="form-control" placeholder="Nomor HP terdaftar (default: 081234567890)">
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn btn-primary" id="btn-send-otp" style="flex: 1;">Kirim OTP</button>
+                    <button class="btn btn-outline" id="btn-close-forgot" style="flex: 1;">Batal</button>
+                </div>
+            </div>
+
+            <div id="forgot-step-2" style="display: none;">
+                <p style="color: var(--success); font-size: 0.9rem; margin-bottom: 1rem;">Kode OTP telah dikirim (Simulasi via Alert).</p>
+                <div class="form-group">
+                    <label>Kode OTP</label>
+                    <input type="text" id="forgot-otp" class="form-control" placeholder="Masukkan 4 digit OTP">
+                </div>
+                <div class="form-group">
+                    <label>Password Baru</label>
+                    <input type="password" id="forgot-new-password" class="form-control" placeholder="Password Baru">
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn btn-primary" id="btn-reset-password" style="flex: 1;">Reset Password</button>
+                    <button class="btn btn-outline" onclick="document.getElementById('forgot-modal').classList.remove('active');" style="flex: 1;">Batal</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer style="text-align: center; padding: 1.5rem; color: var(--text-muted); font-size: 0.9rem; width: 100%;">
+        &copy; 2026 by kenzo_project
+    </footer>
+
+    <script>
+        // DOM Elements
+        const loginSection = document.getElementById('login-section');
+        const dashboardSection = document.getElementById('dashboard-section');
+        const loginForm = document.getElementById('login-form');
+        const passwordInput = document.getElementById('password');
+        const loginError = document.getElementById('login-error');
+        const btnLogout = document.getElementById('btn-logout');
+        
+        const adminCurrentEl = document.getElementById('admin-current-queue');
+        const adminTotalEl = document.getElementById('admin-total-queue');
+        
+        const btnCallNext = document.getElementById('btn-call-next');
+        const btnRecall = document.getElementById('btn-recall');
+        const btnSkip = document.getElementById('btn-skip');
+        const btnReset = document.getElementById('btn-reset');
+        
+        const customNumberInput = document.getElementById('custom-number');
+        const btnSetCustom = document.getElementById('btn-set-custom');
+        const skippedListContainer = document.getElementById('skipped-list-container');
+
+        const linkForgot = document.getElementById('link-forgot');
+        const forgotModal = document.getElementById('forgot-modal');
+        const btnCloseForgot = document.getElementById('btn-close-forgot');
+        const btnSendOtp = document.getElementById('btn-send-otp');
+        const forgotPhone = document.getElementById('forgot-phone');
+        const forgotStep1 = document.getElementById('forgot-step-1');
+        const forgotStep2 = document.getElementById('forgot-step-2');
+        const forgotOtp = document.getElementById('forgot-otp');
+        const forgotNewPassword = document.getElementById('forgot-new-password');
+        const btnResetPassword = document.getElementById('btn-reset-password');
+        
+        const btnInfo = document.getElementById('btn-info');
+        const infoModal = document.getElementById('info-modal');
+        const btnCloseInfo = document.getElementById('btn-close-info');
+        const btnSaveInfo = document.getElementById('btn-save-info');
+        const infoPhone = document.getElementById('info-phone');
+        const infoPassword = document.getElementById('info-password');
+        
+        let generatedOTP = "";
+
+        // Default Account Details
+        if (!localStorage.getItem('admin_pwd')) localStorage.setItem('admin_pwd', 'admin123');
+        if (!localStorage.getItem('admin_phone')) localStorage.setItem('admin_phone', '081234567890');
+
+        // Check login state
+        if (sessionStorage.getItem('is_admin_logged_in') === 'true') {
+            showDashboard();
+        }
+
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const currentPwd = localStorage.getItem('admin_pwd');
+            if (passwordInput.value === currentPwd) {
+                sessionStorage.setItem('is_admin_logged_in', 'true');
+                showDashboard();
+            } else {
+                loginError.style.display = 'block';
+                passwordInput.value = '';
+            }
+        });
+
+        btnLogout.addEventListener('click', () => {
+            sessionStorage.removeItem('is_admin_logged_in');
+            loginSection.style.display = 'block';
+            dashboardSection.style.display = 'none';
+            passwordInput.value = '';
+            loginError.style.display = 'none';
+        });
+
+        function showDashboard() {
+            loginSection.style.display = 'none';
+            dashboardSection.style.display = 'block';
+            updateAdminDisplay();
+        }
+
+        // --- Queue Logic ---
+        function formatQueue(num) {
+            return 'A-' + num.toString().padStart(3, '0');
+        }
+
+        function updateAdminDisplay() {
+            const current = parseInt(localStorage.getItem('queue_current')) || 0;
+            const total = parseInt(localStorage.getItem('queue_total')) || 0;
+            
+            adminCurrentEl.innerText = formatQueue(current);
+            adminTotalEl.innerText = total;
+            
+            renderSkippedList();
+        }
+
+        function renderSkippedList() {
+            let skipped = JSON.parse(localStorage.getItem('skipped_queues') || '[]');
+            if (skipped.length === 0) {
+                skippedListContainer.innerHTML = '<p style="color: var(--text-muted); font-size: 0.9rem; text-align: center;">Tidak ada antrian yang dilewati</p>';
+                return;
+            }
+            
+            skippedListContainer.innerHTML = '';
+            skipped.forEach(num => {
+                const div = document.createElement('div');
+                div.className = 'skipped-item';
+                div.innerHTML = `
+                    <div style="font-weight: bold; color: var(--text-main); font-size: 1.2rem;">${formatQueue(num)}</div>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="btn btn-outline btn-small" onclick="recallSkipped(${num})"><i class="fa-solid fa-bullhorn"></i> Panggil</button>
+                        <button class="btn btn-danger btn-small" onclick="removeSkipped(${num})"><i class="fa-solid fa-check"></i> Selesai</button>
+                    </div>
+                `;
+                skippedListContainer.appendChild(div);
+            });
+        }
+
+        window.recallSkipped = function(num) {
+            localStorage.setItem('queue_current', num.toString());
+            notifyDisplayUpdate();
+            triggerCallSound();
+        };
+
+        window.removeSkipped = function(num) {
+            let skipped = JSON.parse(localStorage.getItem('skipped_queues') || '[]');
+            skipped = skipped.filter(n => n !== num);
+            localStorage.setItem('skipped_queues', JSON.stringify(skipped));
+            updateAdminDisplay();
+        };
+
+        function notifyDisplayUpdate() {
+            localStorage.setItem('queue_update_trigger', Date.now().toString());
+            updateAdminDisplay();
+        }
+
+        function triggerCallSound() {
+            localStorage.setItem('queue_call_trigger', Date.now().toString());
+        }
+
+        // Action: Call Next
+        btnCallNext.addEventListener('click', () => {
+            let highest = parseInt(localStorage.getItem('queue_highest')) || parseInt(localStorage.getItem('queue_current')) || 0;
+            let total = parseInt(localStorage.getItem('queue_total')) || 0;
+            
+            if (highest < total) {
+                highest++;
+                localStorage.setItem('queue_highest', highest.toString());
+                localStorage.setItem('queue_current', highest.toString());
+                notifyDisplayUpdate();
+                triggerCallSound();
+            } else {
+                alert("Semua antrian sudah dipanggil!");
+            }
+        });
+
+        // Action: Recall
+        btnRecall.addEventListener('click', () => {
+            const current = parseInt(localStorage.getItem('queue_current')) || 0;
+            if (current > 0) {
+                triggerCallSound();
+            } else {
+                alert("Belum ada antrian yang dipanggil.");
+            }
+        });
+
+        // Action: Skip / Tidak Hadir
+        btnSkip.addEventListener('click', () => {
+            const current = parseInt(localStorage.getItem('queue_current')) || 0;
+            if (current > 0) {
+                let skipped = JSON.parse(localStorage.getItem('skipped_queues') || '[]');
+                if (!skipped.includes(current)) {
+                    skipped.push(current);
+                    localStorage.setItem('skipped_queues', JSON.stringify(skipped));
+                    updateAdminDisplay();
+                }
+            } else {
+                alert("Belum ada nomor yang dipanggil!");
+            }
+        });
+
+        // Action: Change Number (Custom)
+        btnSetCustom.addEventListener('click', () => {
+            const val = parseInt(customNumberInput.value);
+            if (!isNaN(val) && val > 0) {
+                // Determine total queue. If custom is larger than total, adjust total.
+                let total = parseInt(localStorage.getItem('queue_total')) || 0;
+                if (val > total) {
+                    localStorage.setItem('queue_total', val.toString());
+                }
+
+                // Update highest if custom is larger
+                let highest = parseInt(localStorage.getItem('queue_highest')) || parseInt(localStorage.getItem('queue_current')) || 0;
+                if (val > highest) {
+                    localStorage.setItem('queue_highest', val.toString());
+                }
+
+                localStorage.setItem('queue_current', val.toString());
+                notifyDisplayUpdate();
+                triggerCallSound();
+                customNumberInput.value = '';
+            }
+        });
+
+        // Action: Reset Queue
+        btnReset.addEventListener('click', () => {
+            if (confirm("Apakah Anda yakin ingin mereset semua nomor antrian kembali ke 0?")) {
+                localStorage.setItem('queue_current', '0');
+                localStorage.setItem('queue_total', '0');
+                localStorage.setItem('queue_highest', '0');
+                localStorage.removeItem('skipped_queues');
+                notifyDisplayUpdate();
+            }
+        });
+
+        // Listen for storage changes from User Display page (if someone takes a ticket)
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'queue_update_trigger') {
+                updateAdminDisplay();
+            }
+        });
+
+        // --- Lupa Password Logic ---
+        linkForgot.addEventListener('click', (e) => {
+            e.preventDefault();
+            forgotStep1.style.display = 'block';
+            forgotStep2.style.display = 'none';
+            forgotPhone.value = '';
+            forgotOtp.value = '';
+            forgotNewPassword.value = '';
+            forgotModal.classList.add('active');
+        });
+
+        btnCloseForgot.addEventListener('click', () => {
+            forgotModal.classList.remove('active');
+        });
+
+        btnSendOtp.addEventListener('click', () => {
+            const registeredPhone = localStorage.getItem('admin_phone');
+            if (forgotPhone.value === registeredPhone) {
+                generatedOTP = Math.floor(1000 + Math.random() * 9000).toString();
+                alert(`[SIMULASI] Kode OTP Anda adalah: ${generatedOTP}\n(Dalam sistem nyata, kode ini dikirim ke ${registeredPhone})`);
+                forgotStep1.style.display = 'none';
+                forgotStep2.style.display = 'block';
+            } else {
+                alert("Nomor HP tidak terdaftar!");
+            }
+        });
+
+        btnResetPassword.addEventListener('click', () => {
+            if (forgotOtp.value === generatedOTP) {
+                if (forgotNewPassword.value.trim().length >= 4) {
+                    localStorage.setItem('admin_pwd', forgotNewPassword.value);
+                    alert("Password berhasil direset! Silakan login kembali.");
+                    forgotModal.classList.remove('active');
+                } else {
+                    alert("Password minimal 4 karakter.");
+                }
+            } else {
+                alert("Kode OTP salah!");
+            }
+        });
+
+        // --- Info Akun Logic ---
+        btnInfo.addEventListener('click', () => {
+            infoPhone.value = localStorage.getItem('admin_phone') || '';
+            infoPassword.value = '';
+            infoModal.classList.add('active');
+        });
+
+        btnCloseInfo.addEventListener('click', () => {
+            infoModal.classList.remove('active');
+        });
+
+        btnSaveInfo.addEventListener('click', () => {
+            const newPhone = infoPhone.value.trim();
+            const newPwd = infoPassword.value.trim();
+            
+            if (newPhone) {
+                localStorage.setItem('admin_phone', newPhone);
+            }
+            if (newPwd) {
+                if (newPwd.length >= 4) {
+                    localStorage.setItem('admin_pwd', newPwd);
+                } else {
+                    alert("Password minimal 4 karakter!");
+                    return;
+                }
+            }
+            alert("Info akun berhasil disimpan!");
+            infoModal.classList.remove('active');
+        });
+
+        // Init Display on Load
+        if (!localStorage.getItem('queue_current')) localStorage.setItem('queue_current', '0');
+        if (!localStorage.getItem('queue_total')) localStorage.setItem('queue_total', '0');
+    </script>
+</body>
+</html>

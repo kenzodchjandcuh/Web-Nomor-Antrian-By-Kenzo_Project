@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Antrian Cerdas - Display</title>
+    <meta name="description" content="Tampilan sistem nomor antrian cerdas dan modern.">
+    <link rel="stylesheet" href="style.css">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- html2canvas -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+    <div class="bg-glow"></div>
+    <div class="bg-glow-2"></div>
+
+    <header>
+        <h1><i class="fa-solid fa-layer-group"></i> AntrianPro</h1>
+        <nav class="nav-links">
+            <a href="index.html" class="active">Display</a>
+            <a href="admin.html">Admin Login</a>
+        </nav>
+    </header>
+
+    <main>
+        <div class="glass-card">
+            <div class="queue-label">Nomor Antrian Saat Ini</div>
+            <div class="queue-display">
+                <div class="queue-number" id="current-queue">A-000</div>
+            </div>
+            
+            <p style="color: var(--text-muted); margin-bottom: 2rem;">Silakan menuju loket saat nomor Anda dipanggil.</p>
+            
+            <button class="btn btn-primary animate-pulse" id="btn-ambil-tiket" style="width: 100%; font-size: 1.2rem; padding: 1.2rem;">
+                <i class="fa-solid fa-ticket"></i> Ambil Nomor Antrian
+            </button>
+        </div>
+    </main>
+
+    <footer style="text-align: center; padding: 1.5rem; color: var(--text-muted); font-size: 0.9rem; width: 100%;">
+        &copy; 2026 by kenzo_project
+    </footer>
+
+    <!-- Modal Tiket -->
+    <div class="modal-overlay" id="ticket-modal">
+        <div class="modal-content" style="max-width: 350px;">
+            <div id="ticket-capture" style="padding: 2rem; background: var(--bg-dark); border-radius: 12px; margin-bottom: 1rem; border: 1px solid var(--glass-border); position: relative; overflow: hidden;">
+                <div style="position: absolute; top: -50px; left: -50px; width: 100px; height: 100px; background: var(--primary); opacity: 0.2; filter: blur(20px); border-radius: 50%;"></div>
+                <h3 style="margin-bottom: 0.5rem; color: var(--text-main);">Tiket Antrian Anda</h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">Simpan foto tiket ini</p>
+                <div class="ticket-number" id="modal-ticket-number" style="font-size: 3.5rem; margin: 1.5rem 0; text-shadow: none;">A-000</div>
+                <div style="font-size: 0.8rem; color: var(--text-muted);" id="ticket-date"></div>
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+                <button class="btn btn-outline" id="btn-download" style="flex: 1; font-size: 0.9rem; padding: 0.8rem;"><i class="fa-solid fa-download"></i> Simpan Foto</button>
+                <button class="btn btn-primary" id="btn-close-modal" style="flex: 1; font-size: 0.9rem; padding: 0.8rem;">Tutup</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audio Element for Bell -->
+    <audio id="bell-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
+    <audio id="voice-sound" src="" preload="auto"></audio>
+
+    <script>
+        // System variables
+        const currentQueueEl = document.getElementById('current-queue');
+        const btnAmbil = document.getElementById('btn-ambil-tiket');
+        const ticketModal = document.getElementById('ticket-modal');
+        const btnCloseModal = document.getElementById('btn-close-modal');
+        const btnDownload = document.getElementById('btn-download');
+        const modalTicketNumber = document.getElementById('modal-ticket-number');
+        const ticketDate = document.getElementById('ticket-date');
+        const bellSound = document.getElementById('bell-sound');
+
+        // Initialize Local Storage
+        function initStorage() {
+            if (!localStorage.getItem('queue_current')) localStorage.setItem('queue_current', '0');
+            if (!localStorage.getItem('queue_total')) localStorage.setItem('queue_total', '0');
+            if (!localStorage.getItem('queue_update_trigger')) localStorage.setItem('queue_update_trigger', Date.now().toString());
+            if (!localStorage.getItem('queue_call_trigger')) localStorage.setItem('queue_call_trigger', '0');
+        }
+
+        // Format number with prefix
+        function formatQueue(num) {
+            return 'A-' + num.toString().padStart(3, '0');
+        }
+
+        // Update Display
+        function updateDisplay() {
+            const current = parseInt(localStorage.getItem('queue_current')) || 0;
+            currentQueueEl.innerText = formatQueue(current);
+        }
+
+        // Check if user already has a ticket
+        function checkMyTicket() {
+            const myTicket = localStorage.getItem('my_ticket');
+            if (myTicket) {
+                btnAmbil.disabled = true;
+                btnAmbil.classList.remove('animate-pulse');
+                btnAmbil.style.background = 'rgba(255, 255, 255, 0.1)';
+                btnAmbil.style.color = 'var(--text-muted)';
+                btnAmbil.innerHTML = `<i class="fa-solid fa-check-circle"></i> Nomor Anda: ${formatQueue(myTicket)}`;
+                btnAmbil.style.cursor = 'not-allowed';
+            } else {
+                btnAmbil.disabled = false;
+                btnAmbil.classList.add('animate-pulse');
+                btnAmbil.style.background = '';
+                btnAmbil.style.color = '';
+                btnAmbil.innerHTML = `<i class="fa-solid fa-ticket"></i> Ambil Nomor Antrian`;
+                btnAmbil.style.cursor = 'pointer';
+            }
+        }
+
+        // Listen for changes from Admin panel
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'queue_update_trigger') {
+                // Add update animation
+                currentQueueEl.classList.add('updating');
+                setTimeout(() => currentQueueEl.classList.remove('updating'), 500);
+                updateDisplay();
+
+                // If admin resets queue, allow taking new ticket
+                if (parseInt(localStorage.getItem('queue_total')) === 0) {
+                    localStorage.removeItem('my_ticket');
+                    checkMyTicket();
+                }
+            }
+            if (e.key === 'queue_call_trigger') {
+                playCallSound();
+            }
+        });
+
+        // Function to handle "Ambil Tiket"
+        btnAmbil.addEventListener('click', () => {
+            if (localStorage.getItem('my_ticket')) return; // Prevent multiple takes
+            
+            let total = parseInt(localStorage.getItem('queue_total')) || 0;
+            total++;
+            localStorage.setItem('queue_total', total.toString());
+            // Sync triggers not strictly needed for display, but good for admin
+            localStorage.setItem('queue_update_trigger', Date.now().toString());
+            
+            // Store user's ticket and update UI
+            localStorage.setItem('my_ticket', total.toString());
+            checkMyTicket();
+            
+            // Set current date for ticket
+            const now = new Date();
+            ticketDate.innerText = now.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute:'2-digit' });
+
+            // Show Modal
+            modalTicketNumber.innerText = formatQueue(total);
+            ticketModal.classList.add('active');
+        });
+
+        btnCloseModal.addEventListener('click', () => {
+            ticketModal.classList.remove('active');
+        });
+
+        // Download Ticket Image
+        btnDownload.addEventListener('click', () => {
+            const captureArea = document.getElementById('ticket-capture');
+            const originalBorder = captureArea.style.border;
+            captureArea.style.border = 'none'; // remove border for clean image
+            
+            const originalBg = captureArea.style.backgroundColor;
+            captureArea.style.backgroundColor = '#09090b'; 
+            
+            // Change text color temporarily if needed
+            html2canvas(captureArea, {
+                scale: 3,
+                backgroundColor: '#09090b',
+                logging: false
+            }).then(canvas => {
+                captureArea.style.border = originalBorder;
+                captureArea.style.backgroundColor = originalBg;
+                
+                const link = document.createElement('a');
+                link.download = `Antrian-${modalTicketNumber.innerText}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            }).catch(err => {
+                console.error("Gagal menyimpan foto", err);
+                captureArea.style.border = originalBorder;
+                captureArea.style.backgroundColor = originalBg;
+            });
+        });
+
+        // Play calling sound
+        function playCallSound() {
+            bellSound.currentTime = 0;
+            bellSound.play().catch(e => console.log('Audio play failed', e));
+            
+            // Visual feedback
+            currentQueueEl.classList.add('updating');
+            setTimeout(() => currentQueueEl.classList.remove('updating'), 1000);
+        }
+
+        // Run on load
+        initStorage();
+        updateDisplay();
+        checkMyTicket();
+    </script>
+</body>
+</html>
