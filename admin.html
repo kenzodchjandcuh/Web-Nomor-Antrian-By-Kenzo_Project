@@ -223,7 +223,32 @@
         &copy; 2026 by kenzo_project
     </footer>
 
-    <script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
+        import { getDatabase, ref, onValue, update, get } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-database.js";
+
+        // =========================================================================
+        // TODO: GANTI BAGIAN INI DENGAN CONFIG FIREBASE PROJECT ANDA
+        // =========================================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyAYC6ON6h5csqT-0bK_cUJLI16f4ucfrgE",
+            authDomain: "antrianpro1.firebaseapp.com",
+            databaseURL: "https://antrianpro1-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "antrianpro1",
+            storageBucket: "antrianpro1.firebasestorage.app",
+            messagingSenderId: "883903710328",
+            appId: "1:883903710328:web:996126ee5361a59ea0d98d",
+            measurementId: "G-M3ED7W19PX"
+        };
+        // =========================================================================
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const queueRef = ref(db, 'queue');
+
+        // State Database Realtime
+        let dbState = { current: 0, total: 0, highest: 0, skipped_queues: [] };
+
         // DOM Elements
         const loginSection = document.getElementById('login-section');
         const dashboardSection = document.getElementById('dashboard-section');
@@ -296,7 +321,6 @@
         function showDashboard() {
             loginSection.style.display = 'none';
             dashboardSection.style.display = 'block';
-            updateAdminDisplay();
         }
 
         // --- Queue Logic ---
@@ -304,18 +328,26 @@
             return 'A-' + num.toString().padStart(3, '0');
         }
 
+        // Listen for Realtime DB Changes
+        onValue(queueRef, (snapshot) => {
+            if (snapshot.exists()) {
+                dbState = snapshot.val();
+                if (!dbState.skipped_queues) dbState.skipped_queues = [];
+            } else {
+                dbState = { current: 0, total: 0, highest: 0, skipped_queues: [] };
+            }
+            updateAdminDisplay();
+        });
+
         function updateAdminDisplay() {
-            const current = parseInt(localStorage.getItem('queue_current')) || 0;
-            const total = parseInt(localStorage.getItem('queue_total')) || 0;
-            
-            adminCurrentEl.innerText = formatQueue(current);
-            adminTotalEl.innerText = total;
+            adminCurrentEl.innerText = formatQueue(dbState.current || 0);
+            adminTotalEl.innerText = dbState.total || 0;
             
             renderSkippedList();
         }
 
         function renderSkippedList() {
-            let skipped = JSON.parse(localStorage.getItem('skipped_queues') || '[]');
+            let skipped = dbState.skipped_queues || [];
             if (skipped.length === 0) {
                 skippedListContainer.innerHTML = '<p style="color: var(--text-muted); font-size: 0.9rem; text-align: center;">Tidak ada antrian yang dilewati</p>';
                 return;
@@ -328,71 +360,74 @@
                 div.innerHTML = `
                     <div style="font-weight: bold; color: var(--text-main); font-size: 1.2rem;">${formatQueue(num)}</div>
                     <div style="display: flex; gap: 0.5rem;">
-                        <button class="btn btn-outline btn-small" onclick="recallSkipped(${num})"><i class="fa-solid fa-bullhorn"></i> Panggil</button>
-                        <button class="btn btn-danger btn-small" onclick="removeSkipped(${num})"><i class="fa-solid fa-check"></i> Selesai</button>
+                        <button class="btn btn-outline btn-small" id="btn-recall-skip-${num}"><i class="fa-solid fa-bullhorn"></i> Panggil</button>
+                        <button class="btn btn-danger btn-small" id="btn-remove-skip-${num}"><i class="fa-solid fa-check"></i> Selesai</button>
                     </div>
                 `;
                 skippedListContainer.appendChild(div);
+
+                // Add listeners dynamic (because type="module" limits global scope)
+                document.getElementById(`btn-recall-skip-${num}`).addEventListener('click', () => recallSkipped(num));
+                document.getElementById(`btn-remove-skip-${num}`).addEventListener('click', () => removeSkipped(num));
             });
         }
 
-        window.recallSkipped = function(num) {
-            localStorage.setItem('queue_current', num.toString());
-            notifyDisplayUpdate();
-            triggerCallSound();
-        };
-
-        window.removeSkipped = function(num) {
-            let skipped = JSON.parse(localStorage.getItem('skipped_queues') || '[]');
-            skipped = skipped.filter(n => n !== num);
-            localStorage.setItem('skipped_queues', JSON.stringify(skipped));
-            updateAdminDisplay();
-        };
-
-        function notifyDisplayUpdate() {
-            localStorage.setItem('queue_update_trigger', Date.now().toString());
-            updateAdminDisplay();
+        async function recallSkipped(num) {
+            await update(queueRef, {
+                current: num,
+                update_trigger: Date.now(),
+                call_trigger: Date.now()
+            });
         }
 
-        function triggerCallSound() {
-            localStorage.setItem('queue_call_trigger', Date.now().toString());
+        async function removeSkipped(num) {
+            let skipped = dbState.skipped_queues || [];
+            skipped = skipped.filter(n => n !== num);
+            await update(queueRef, {
+                skipped_queues: skipped
+            });
         }
 
         // Action: Call Next
-        btnCallNext.addEventListener('click', () => {
-            let highest = parseInt(localStorage.getItem('queue_highest')) || parseInt(localStorage.getItem('queue_current')) || 0;
-            let total = parseInt(localStorage.getItem('queue_total')) || 0;
+        btnCallNext.addEventListener('click', async () => {
+            let highest = dbState.highest || dbState.current || 0;
+            let total = dbState.total || 0;
             
             if (highest < total) {
                 highest++;
-                localStorage.setItem('queue_highest', highest.toString());
-                localStorage.setItem('queue_current', highest.toString());
-                notifyDisplayUpdate();
-                triggerCallSound();
+                await update(queueRef, {
+                    highest: highest,
+                    current: highest,
+                    update_trigger: Date.now(),
+                    call_trigger: Date.now()
+                });
             } else {
                 alert("Semua antrian sudah dipanggil!");
             }
         });
 
         // Action: Recall
-        btnRecall.addEventListener('click', () => {
-            const current = parseInt(localStorage.getItem('queue_current')) || 0;
+        btnRecall.addEventListener('click', async () => {
+            const current = dbState.current || 0;
             if (current > 0) {
-                triggerCallSound();
+                await update(queueRef, {
+                    call_trigger: Date.now()
+                });
             } else {
                 alert("Belum ada antrian yang dipanggil.");
             }
         });
 
         // Action: Skip / Tidak Hadir
-        btnSkip.addEventListener('click', () => {
-            const current = parseInt(localStorage.getItem('queue_current')) || 0;
+        btnSkip.addEventListener('click', async () => {
+            const current = dbState.current || 0;
             if (current > 0) {
-                let skipped = JSON.parse(localStorage.getItem('skipped_queues') || '[]');
+                let skipped = dbState.skipped_queues || [];
                 if (!skipped.includes(current)) {
                     skipped.push(current);
-                    localStorage.setItem('skipped_queues', JSON.stringify(skipped));
-                    updateAdminDisplay();
+                    await update(queueRef, {
+                        skipped_queues: skipped
+                    });
                 }
             } else {
                 alert("Belum ada nomor yang dipanggil!");
@@ -400,43 +435,40 @@
         });
 
         // Action: Change Number (Custom)
-        btnSetCustom.addEventListener('click', () => {
+        btnSetCustom.addEventListener('click', async () => {
             const val = parseInt(customNumberInput.value);
             if (!isNaN(val) && val > 0) {
-                // Determine total queue. If custom is larger than total, adjust total.
-                let total = parseInt(localStorage.getItem('queue_total')) || 0;
-                if (val > total) {
-                    localStorage.setItem('queue_total', val.toString());
+                let updates = {
+                    current: val,
+                    update_trigger: Date.now(),
+                    call_trigger: Date.now()
+                };
+
+                // Adjust total if custom is larger
+                if (val > (dbState.total || 0)) {
+                    updates.total = val;
                 }
 
                 // Update highest if custom is larger
-                let highest = parseInt(localStorage.getItem('queue_highest')) || parseInt(localStorage.getItem('queue_current')) || 0;
-                if (val > highest) {
-                    localStorage.setItem('queue_highest', val.toString());
+                if (val > (dbState.highest || dbState.current || 0)) {
+                    updates.highest = val;
                 }
 
-                localStorage.setItem('queue_current', val.toString());
-                notifyDisplayUpdate();
-                triggerCallSound();
+                await update(queueRef, updates);
                 customNumberInput.value = '';
             }
         });
 
         // Action: Reset Queue
-        btnReset.addEventListener('click', () => {
+        btnReset.addEventListener('click', async () => {
             if (confirm("Apakah Anda yakin ingin mereset semua nomor antrian kembali ke 0?")) {
-                localStorage.setItem('queue_current', '0');
-                localStorage.setItem('queue_total', '0');
-                localStorage.setItem('queue_highest', '0');
-                localStorage.removeItem('skipped_queues');
-                notifyDisplayUpdate();
-            }
-        });
-
-        // Listen for storage changes from User Display page (if someone takes a ticket)
-        window.addEventListener('storage', (e) => {
-            if (e.key === 'queue_update_trigger') {
-                updateAdminDisplay();
+                await update(queueRef, {
+                    current: 0,
+                    total: 0,
+                    highest: 0,
+                    skipped_queues: [],
+                    update_trigger: Date.now()
+                });
             }
         });
 
@@ -510,10 +542,6 @@
             alert("Info akun berhasil disimpan!");
             infoModal.classList.remove('active');
         });
-
-        // Init Display on Load
-        if (!localStorage.getItem('queue_current')) localStorage.setItem('queue_current', '0');
-        if (!localStorage.getItem('queue_total')) localStorage.setItem('queue_total', '0');
     </script>
 </body>
 </html>

@@ -63,7 +63,29 @@
     <audio id="bell-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
     <audio id="voice-sound" src="" preload="auto"></audio>
 
-    <script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
+        import { getDatabase, ref, onValue, set, get, update } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-database.js";
+
+        // =========================================================================
+        // TODO: GANTI BAGIAN INI DENGAN CONFIG FIREBASE PROJECT ANDA
+        // =========================================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyAYC6ON6h5csqT-0bK_cUJLI16f4ucfrgE",
+            authDomain: "antrianpro1.firebaseapp.com",
+            databaseURL: "https://antrianpro1-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "antrianpro1",
+            storageBucket: "antrianpro1.firebasestorage.app",
+            messagingSenderId: "883903710328",
+            appId: "1:883903710328:web:996126ee5361a59ea0d98d",
+            measurementId: "G-M3ED7W19PX"
+        };
+        // =========================================================================
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const queueRef = ref(db, 'queue');
+
         // System variables
         const currentQueueEl = document.getElementById('current-queue');
         const btnAmbil = document.getElementById('btn-ambil-tiket');
@@ -74,23 +96,9 @@
         const ticketDate = document.getElementById('ticket-date');
         const bellSound = document.getElementById('bell-sound');
 
-        // Initialize Local Storage
-        function initStorage() {
-            if (!localStorage.getItem('queue_current')) localStorage.setItem('queue_current', '0');
-            if (!localStorage.getItem('queue_total')) localStorage.setItem('queue_total', '0');
-            if (!localStorage.getItem('queue_update_trigger')) localStorage.setItem('queue_update_trigger', Date.now().toString());
-            if (!localStorage.getItem('queue_call_trigger')) localStorage.setItem('queue_call_trigger', '0');
-        }
-
         // Format number with prefix
         function formatQueue(num) {
             return 'A-' + num.toString().padStart(3, '0');
-        }
-
-        // Update Display
-        function updateDisplay() {
-            const current = parseInt(localStorage.getItem('queue_current')) || 0;
-            currentQueueEl.innerText = formatQueue(current);
         }
 
         // Check if user already has a ticket
@@ -113,46 +121,67 @@
             }
         }
 
-        // Listen for changes from Admin panel
-        window.addEventListener('storage', (e) => {
-            if (e.key === 'queue_update_trigger') {
-                // Add update animation
-                currentQueueEl.classList.add('updating');
-                setTimeout(() => currentQueueEl.classList.remove('updating'), 500);
-                updateDisplay();
+        let lastCallTrigger = null;
 
-                // If admin resets queue, allow taking new ticket
-                if (parseInt(localStorage.getItem('queue_total')) === 0) {
-                    localStorage.removeItem('my_ticket');
-                    checkMyTicket();
-                }
-            }
-            if (e.key === 'queue_call_trigger') {
+        // Listen for Realtime Changes from Firebase
+        onValue(queueRef, (snapshot) => {
+            const data = snapshot.val() || { current: 0, total: 0, call_trigger: 0 };
+            
+            // Update Display
+            currentQueueEl.innerText = formatQueue(data.current || 0);
+
+            // Add update animation
+            currentQueueEl.classList.add('updating');
+            setTimeout(() => currentQueueEl.classList.remove('updating'), 500);
+
+            // Play sound if call_trigger changed
+            if (data.call_trigger && data.call_trigger !== lastCallTrigger && lastCallTrigger !== null) {
                 playCallSound();
+            }
+            lastCallTrigger = data.call_trigger;
+
+            // If admin resets queue, allow taking new ticket
+            if (data.total === 0 && localStorage.getItem('my_ticket')) {
+                localStorage.removeItem('my_ticket');
+                checkMyTicket();
             }
         });
 
         // Function to handle "Ambil Tiket"
-        btnAmbil.addEventListener('click', () => {
+        btnAmbil.addEventListener('click', async () => {
             if (localStorage.getItem('my_ticket')) return; // Prevent multiple takes
             
-            let total = parseInt(localStorage.getItem('queue_total')) || 0;
-            total++;
-            localStorage.setItem('queue_total', total.toString());
-            // Sync triggers not strictly needed for display, but good for admin
-            localStorage.setItem('queue_update_trigger', Date.now().toString());
-            
-            // Store user's ticket and update UI
-            localStorage.setItem('my_ticket', total.toString());
-            checkMyTicket();
-            
-            // Set current date for ticket
-            const now = new Date();
-            ticketDate.innerText = now.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute:'2-digit' });
+            btnAmbil.disabled = true;
+            btnAmbil.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Memproses...`;
 
-            // Show Modal
-            modalTicketNumber.innerText = formatQueue(total);
-            ticketModal.classList.add('active');
+            try {
+                // Get current total from Firebase
+                const snapshot = await get(queueRef);
+                let data = snapshot.val() || {};
+                let total = (data.total || 0) + 1;
+
+                // Update database
+                await update(queueRef, {
+                    total: total,
+                    update_trigger: Date.now()
+                });
+                
+                // Store user's ticket locally and update UI
+                localStorage.setItem('my_ticket', total.toString());
+                checkMyTicket();
+                
+                // Set current date for ticket
+                const now = new Date();
+                ticketDate.innerText = now.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute:'2-digit' });
+
+                // Show Modal
+                modalTicketNumber.innerText = formatQueue(total);
+                ticketModal.classList.add('active');
+            } catch (error) {
+                console.error("Gagal mengambil tiket:", error);
+                alert("Koneksi Firebase gagal. Pastikan Config Firebase sudah diatur.");
+                checkMyTicket(); // Reset button
+            }
         });
 
         btnCloseModal.addEventListener('click', () => {
@@ -168,7 +197,6 @@
             const originalBg = captureArea.style.backgroundColor;
             captureArea.style.backgroundColor = '#09090b'; 
             
-            // Change text color temporarily if needed
             html2canvas(captureArea, {
                 scale: 3,
                 backgroundColor: '#09090b',
@@ -199,8 +227,6 @@
         }
 
         // Run on load
-        initStorage();
-        updateDisplay();
         checkMyTicket();
     </script>
 </body>
