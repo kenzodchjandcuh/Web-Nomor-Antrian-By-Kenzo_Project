@@ -1,20 +1,22 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Antrian Cerdas - Admin Dashboard</title>
+    <title>Sistem Antrian Cerdas By kenzo_project</title>
     <meta name="description" content="Dashboard kontrol admin untuk memanggil dan mengatur nomor antrian.">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         /* Admin specific styles */
         #dashboard-section {
-            display: none; /* Hidden by default until login */
+            display: none;
+            /* Hidden by default until login */
             width: 100%;
             max-width: 800px;
         }
-        
+
         .login-card {
             max-width: 400px;
             width: 100%;
@@ -35,7 +37,7 @@
         .btn-full {
             grid-column: 1 / -1;
         }
-        
+
         .header-actions {
             display: flex;
             justify-content: space-between;
@@ -109,21 +111,25 @@
             font-weight: 600;
             text-transform: uppercase;
         }
+
         .badge-waiting {
             background: rgba(245, 158, 11, 0.1);
             color: #fbbf24;
             border: 1px solid rgba(245, 158, 11, 0.2);
         }
+
         .badge-calling {
             background: rgba(59, 130, 246, 0.1);
             color: #60a5fa;
             border: 1px solid rgba(59, 130, 246, 0.2);
         }
+
         .badge-skipped {
             background: rgba(139, 92, 246, 0.1);
             color: #a78bfa;
             border: 1px solid rgba(139, 92, 246, 0.2);
         }
+
         .badge-served {
             background: rgba(16, 185, 129, 0.1);
             color: #34d399;
@@ -138,25 +144,278 @@
             font-size: 0.9rem;
             margin-top: 0.5rem;
         }
+
         .queue-table th {
             padding: 0.75rem 0.5rem;
             color: var(--text-muted);
             border-bottom: 1px solid var(--glass-border);
             font-weight: 600;
         }
+
         .queue-table td {
             padding: 0.75rem 0.5rem;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
             vertical-align: middle;
         }
+
         .queue-table tr {
             transition: background-color 0.2s;
         }
+
         .queue-table tr:hover {
             background: rgba(255, 255, 255, 0.02);
         }
+
+        /* Dashboard Layout Updates */
+        body.dashboard-active {
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        body.dashboard-active main {
+            flex: 1;
+            min-height: 0;
+            padding: 1rem 1.5rem;
+            overflow: hidden;
+            display: flex;
+            align-items: stretch;
+            justify-content: center;
+        }
+
+        body.dashboard-active footer {
+            display: none;
+        }
+
+        body.dashboard-active #dashboard-section.glass-card {
+            max-width: 1400px;
+            width: 100%;
+            flex: 1;
+            min-height: 0;
+            padding: 1.25rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            text-align: left;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            grid-template-rows: 1fr;
+            gap: 1.25rem;
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        .left-column {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            overflow-y: auto;
+            height: 100%;
+            padding-right: 4px;
+        }
+
+        .right-column {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            overflow: hidden;
+            height: 100%;
+            min-height: 0;
+        }
+
+        .glass-subcard {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 1.25rem;
+            border-radius: 16px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .skipped-container {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 160px;
+            overflow: hidden;
+        }
+
+        .table-container {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        .table-wrapper {
+            flex: 1;
+            overflow-y: auto;
+            margin-top: 0.5rem;
+            padding-right: 4px;
+        }
+
+        /* Detail Card Grid compact styles */
+        body.dashboard-active .detail-grid {
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.6rem;
+            margin-top: 0.6rem;
+        }
+
+        body.dashboard-active .detail-item {
+            padding: 0.5rem 0.75rem;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.15);
+            border: 1px solid var(--glass-border);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+
+        body.dashboard-active .detail-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        body.dashboard-active .detail-label i {
+            color: var(--primary);
+        }
+
+        body.dashboard-active .detail-value {
+            font-size: 0.9rem;
+            color: var(--text-main);
+            font-weight: 600;
+            word-break: break-word;
+        }
+
+        body.dashboard-active #admin-detail-card h3 {
+            font-size: 1.05rem;
+            margin-bottom: 0.4rem !important;
+        }
+
+        /* Collapsed State Styles */
+        #admin-detail-card.collapsed .detail-grid,
+        #admin-detail-card.collapsed #no-current-user {
+            display: none !important;
+        }
+
+        #admin-detail-card.collapsed {
+            padding-bottom: 0.75rem;
+        }
+
+        /* Custom Scrollbar for premium feel */
+        .table-wrapper::-webkit-scrollbar,
+        .left-column::-webkit-scrollbar,
+        .skipped-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .table-wrapper::-webkit-scrollbar-track,
+        .left-column::-webkit-scrollbar-track,
+        .skipped-list::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.01);
+            border-radius: 3px;
+        }
+
+        .table-wrapper::-webkit-scrollbar-thumb,
+        .left-column::-webkit-scrollbar-thumb,
+        .skipped-list::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+
+        .table-wrapper::-webkit-scrollbar-thumb:hover,
+        .left-column::-webkit-scrollbar-thumb:hover,
+        .skipped-list::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        body.dashboard-active .skipped-list {
+            max-height: none;
+            margin-top: 0;
+            flex: 1;
+        }
+
+        body.dashboard-active .controls-grid {
+            margin-top: 0;
+            margin-bottom: 0 !important;
+            gap: 0.75rem;
+        }
+
+        body.dashboard-active .controls-grid .btn {
+            padding: 0.8rem;
+            font-size: 1rem;
+        }
+
+        @media (max-width: 1024px) {
+            body.dashboard-active {
+                height: auto;
+                overflow: auto;
+            }
+
+            body.dashboard-active main {
+                height: auto;
+                overflow: visible;
+                padding: 1.5rem 1rem;
+            }
+
+            body.dashboard-active footer {
+                display: block;
+            }
+
+            body.dashboard-active #dashboard-section.glass-card {
+                height: auto;
+                padding: 1.5rem;
+            }
+
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto;
+                height: auto;
+                overflow: visible;
+            }
+
+            .left-column,
+            .right-column {
+                height: auto;
+                overflow: visible;
+            }
+
+            .skipped-container,
+            .table-container {
+                flex: none;
+                height: auto;
+            }
+
+            .table-wrapper {
+                max-height: 400px;
+            }
+
+            .dashboard-footer {
+                display: none;
+            }
+
+            body.dashboard-active .detail-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 600px) {
+            body.dashboard-active .detail-grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
+
 <body>
     <div class="bg-glow"></div>
     <div class="bg-glow-2"></div>
@@ -166,6 +425,7 @@
         <nav class="nav-links">
             <a href="index.html">Display</a>
             <a href="admin.html" class="active">Admin Login</a>
+            <a href="grafik.html">Grafik Pengunjung</a>
         </nav>
     </header>
 
@@ -173,14 +433,16 @@
         <!-- Login Section -->
         <div class="glass-card login-card" id="login-section">
             <h2 style="margin-bottom: 2rem; color: var(--text-main);">Admin Login</h2>
-            <div id="login-error" style="color: var(--danger); margin-bottom: 1rem; display: none;">Password salah!</div>
+            <div id="login-error" style="color: var(--danger); margin-bottom: 1rem; display: none;">Password salah!
+            </div>
             <form id="login-form">
                 <div class="form-group">
                     <label for="password">Masukan Password</label>
                     <input type="password" id="password" class="form-control" placeholder="Masukkan password" required>
                 </div>
                 <div style="text-align: right; margin-top: 0.5rem; margin-bottom: 1.5rem;">
-                    <a href="#" id="link-forgot" style="color: var(--primary); text-decoration: none; font-size: 0.9rem;">Lupa Password?</a>
+                    <a href="#" id="link-forgot"
+                        style="color: var(--primary); text-decoration: none; font-size: 0.9rem;">Lupa Password?</a>
                 </div>
                 <button type="submit" class="btn btn-primary" style="width: 100%;">
                     <i class="fa-solid fa-right-to-bracket"></i> Masuk
@@ -191,8 +453,11 @@
         <!-- Dashboard Section -->
         <div class="glass-card" id="dashboard-section">
             <div class="header-actions">
-                <h2 style="color: var(--text-main);">Dashboard Kendali</h2>
+                <h2 style="color: var(--text-main);"><i class="fa-solid fa-chart-line"></i> Dashboard Kendali</h2>
                 <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn btn-outline" id="btn-grafik" onclick="window.location.href='grafik.html'" style="padding: 0.5rem 1rem; font-size: 0.9rem;">
+                        <i class="fa-solid fa-chart-simple"></i> Grafik Pengunjung
+                    </button>
                     <button class="btn btn-outline" id="btn-info" style="padding: 0.5rem 1rem; font-size: 0.9rem;">
                         <i class="fa-solid fa-user-gear"></i> Info Akun
                     </button>
@@ -202,122 +467,176 @@
                 </div>
             </div>
 
-            <div class="stats-grid">
-                <div class="stat-box">
-                    <div class="stat-label">Nomor Saat Ini</div>
-                    <div class="stat-value" id="admin-current-queue" style="color: var(--primary);">A-000</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-label">Total Antrian Hari Ini</div>
-                    <div class="stat-value" id="admin-total-queue">0</div>
-                </div>
-            </div>
-
-            <!-- Detail Pengunjung Saat Ini -->
-            <div id="admin-detail-card" style="background: rgba(0,0,0,0.2); padding: 1.5rem; border-radius: 16px; border: 1px solid var(--glass-border); margin-bottom: 1rem; text-align: left;">
-                <h3 style="color: var(--text-main); font-size: 1.1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
-                    <i class="fa-solid fa-circle-info" style="color: var(--primary);"></i> Detail Pengunjung Saat Ini
-                </h3>
-                <div id="current-user-details" class="detail-grid">
-                    <div class="detail-item">
-                        <span class="detail-label">Nama Lengkap</span>
-                        <span class="detail-value" id="detail-name">-</span>
+            <div class="dashboard-grid">
+                <!-- Left Panel: Controls & Lists -->
+                <div class="left-column">
+                    <div class="stats-grid">
+                        <div class="stat-box">
+                            <div class="stat-label">Nomor Saat Ini</div>
+                            <div class="stat-value" id="admin-current-queue" style="color: var(--primary);">A-000</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Total Antrian</div>
+                            <div class="stat-value" id="admin-total-queue">0</div>
+                        </div>
                     </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Nomor KTP</span>
-                        <span class="detail-value" id="detail-ktp">-</span>
+
+                    <!-- Loket & Custom Nomor -->
+                    <div class="glass-subcard" style="display: flex; flex-direction: column; gap: 1rem;">
+                        <div>
+                            <label for="select-desk"
+                                style="display:block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.85rem;">
+                                <i class="fa-solid fa-desktop" style="color: var(--primary);"></i> Meja Pelayanan /
+                                Loket Tujuan
+                            </label>
+                            <select id="select-desk" class="form-control"
+                                style="background: #18181b; color: var(--text-main); border: 1px solid var(--glass-border); width: 100%; padding: 0.75rem;">
+                                <option value="Meja Registrasi" style="background: #18181b;">Meja Registrasi</option>
+                                <option value="Meja Perekaman Biometrik" style="background: #18181b;">Meja Perekaman
+                                    Biometrik</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="custom-number"
+                                style="display:block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.85rem;">
+                                <i class="fa-solid fa-arrow-up-9-1" style="color: var(--primary);"></i> Lompat ke Nomor
+                                Tertentu
+                            </label>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <input type="number" id="custom-number" class="form-control" placeholder="Contoh: 5"
+                                    min="1" style="padding: 0.75rem;">
+                                <button class="btn btn-outline" id="btn-set-custom"
+                                    style="white-space: nowrap; padding: 0.75rem 1rem; font-size: 0.9rem;">
+                                    <i class="fa-solid fa-pen-to-square"></i> Set
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Nomor HP</span>
-                        <span class="detail-value" id="detail-phone">-</span>
+
+                    <!-- Actions -->
+                    <div class="controls-grid">
+                        <button class="btn btn-primary btn-full" id="btn-call-next"
+                            style="font-size: 1.1rem; padding: 1rem;">
+                            <i class="fa-solid fa-bullhorn"></i> Panggil Berikutnya
+                        </button>
+
+                        <button class="btn btn-outline" id="btn-recall" style="font-size: 0.95rem;">
+                            <i class="fa-solid fa-rotate-right"></i> Panggil Ulang
+                        </button>
+
+                        <button class="btn btn-outline" id="btn-skip"
+                            style="color: #c084fc; border-color: rgba(192, 132, 252, 0.5); font-size: 0.95rem;">
+                            <i class="fa-solid fa-forward-step"></i> Lewati
+                        </button>
+
+                        <button class="btn btn-danger btn-full" id="btn-reset"
+                            style="margin-top: 0.25rem; font-size: 0.95rem; padding: 0.75rem;">
+                            <i class="fa-solid fa-trash-can"></i> Reset Antrian
+                        </button>
                     </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Alamat Lengkap</span>
-                        <span class="detail-value" id="detail-address">-</span>
+
+                    <!-- Daftar Dilewati -->
+                    <div class="glass-subcard skipped-container">
+                        <h3
+                            style="color: var(--text-main); font-size: 1rem; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fa-solid fa-forward" style="color: #c084fc;"></i> Dilewati / Tertunda
+                        </h3>
+                        <div class="skipped-list" id="skipped-list-container">
+                            <p style="color: var(--text-muted); font-size: 0.85rem; text-align: center;">Tidak ada
+                                antrian yang dilewati</p>
+                        </div>
                     </div>
-                    <div class="detail-item" style="grid-column: span 2;">
-                        <span class="detail-label">Loket / Meja Pelayanan Saat Ini</span>
-                        <span class="detail-value" id="detail-desk" style="color: var(--primary); font-size: 1.1rem; font-weight: 800;">-</span>
+
+                    <!-- Dashboard Footer inside Left Column -->
+                    <div class="dashboard-footer"
+                        style="text-align: center; font-size: 0.8rem; color: var(--text-muted); margin-top: auto; padding-top: 0.5rem;">
+                        &copy; 2026 by kenzo_project
                     </div>
                 </div>
-                <div id="no-current-user" style="color: var(--text-muted); text-align: center; padding: 1.5rem 0; font-size: 0.95rem;">
-                    <i class="fa-solid fa-users-slash" style="font-size: 2rem; margin-bottom: 0.5rem; display: block; opacity: 0.5;"></i>
-                    Belum ada antrian yang dipanggil atau data kosong.
-                </div>
-            </div>
 
-            <!-- Loket Tujuan / Meja Pelayanan -->
-            <div style="background: rgba(0,0,0,0.2); padding: 1.5rem; border-radius: 16px; border: 1px solid var(--glass-border); margin-bottom: 1rem; text-align: left;">
-                <label for="select-desk" style="display:block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">
-                    <i class="fa-solid fa-desktop" style="color: var(--primary);"></i> Meja Pelayanan / Loket Tujuan
-                </label>
-                <select id="select-desk" class="form-control" style="background: #18181b; color: var(--text-main); border: 1px solid var(--glass-border); width: 100%;">
-                    <option value="Meja Registrasi" style="background: #18181b;">Meja Registrasi</option>
-                    <option value="Meja Perekaman Biometrik" style="background: #18181b;">Meja Perekaman Biometrik</option>
-                </select>
-            </div>
+                <!-- Right Panel: Active Details & Entire Table -->
+                <div class="right-column">
+                    <!-- Detail Pengunjung Saat Ini -->
+                    <div id="admin-detail-card" class="glass-subcard" style="text-align: left;">
+                        <h3
+                            style="color: var(--text-main); font-size: 1.1rem; margin-bottom: 0.75rem; display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                            <span style="display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fa-solid fa-circle-info" style="color: var(--primary);"></i> Detail Pengunjung
+                                Saat Ini
+                            </span>
+                            <button class="btn btn-outline btn-small" id="btn-toggle-detail"
+                                style="padding: 0.25rem 0.5rem; font-size: 0.75rem; display: flex; align-items: center; gap: 0.25rem; height: auto;">
+                                <i class="fa-solid fa-chevron-up" id="icon-toggle-detail"></i> <span>Sembunyikan</span>
+                            </button>
+                        </h3>
+                        <div id="current-user-details" class="detail-grid">
+                            <div class="detail-item">
+                                <span class="detail-label"><i class="fa-solid fa-user"></i> Nama Lengkap</span>
+                                <span class="detail-value" id="detail-name">-</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label"><i class="fa-solid fa-address-card"></i> KTP / HP</span>
+                                <span class="detail-value" id="detail-ktp">-</span>
+                                <span class="detail-value" id="detail-phone"
+                                    style="display: block; font-size: 0.8rem; color: var(--text-muted); font-weight: normal; margin-top: 0.15rem;">-</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label"><i class="fa-solid fa-location-dot"></i> Alamat
+                                    Lengkap</span>
+                                <span class="detail-value" id="detail-address">-</span>
+                            </div>
+                            <div class="detail-item"
+                                style="display: flex; flex-direction: column; justify-content: center; background: rgba(59, 130, 246, 0.08); border-color: rgba(59, 130, 246, 0.2);">
+                                <span class="detail-label"><i class="fa-solid fa-desktop"></i> Loket</span>
+                                <div
+                                    style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-top: 0.15rem;">
+                                    <span class="detail-value" id="detail-desk"
+                                        style="color: var(--primary); font-weight: 800;">-</span>
+                                    <span class="badge badge-calling"
+                                        style="font-size: 0.65rem; padding: 0.15rem 0.4rem;">Calling</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="no-current-user"
+                            style="color: var(--text-muted); text-align: center; padding: 1.5rem 0; font-size: 0.95rem;">
+                            <i class="fa-solid fa-users-slash"
+                                style="font-size: 2rem; margin-bottom: 0.5rem; display: block; opacity: 0.5;"></i>
+                            Belum ada antrian yang dipanggil.
+                        </div>
+                    </div>
 
-            <!-- Custom Ubah Nomor -->
-            <div style="background: rgba(0,0,0,0.2); padding: 1.5rem; border-radius: 16px; border: 1px solid var(--glass-border); margin-bottom: 1rem;">
-                <label style="display:block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">Lompat ke Nomor Tertentu (Opsional)</label>
-                <div style="display: flex; gap: 1rem;">
-                    <input type="number" id="custom-number" class="form-control" placeholder="Contoh: 5" min="1">
-                    <button class="btn btn-outline" id="btn-set-custom" style="white-space: nowrap;">
-                        <i class="fa-solid fa-pen-to-square"></i> Ubah Nomor
-                    </button>
-                </div>
-            </div>
-
-            <div class="controls-grid" style="margin-bottom: 2rem;">
-                <button class="btn btn-primary btn-full" id="btn-call-next" style="font-size: 1.2rem;">
-                    <i class="fa-solid fa-bullhorn"></i> Panggil Berikutnya
-                </button>
-                
-                <button class="btn btn-outline" id="btn-recall">
-                    <i class="fa-solid fa-rotate-right"></i> Panggil Ulang
-                </button>
-                
-                <button class="btn btn-outline" id="btn-skip" style="color: #c084fc; border-color: rgba(192, 132, 252, 0.5);">
-                    <i class="fa-solid fa-forward-step"></i> Lewati (Tidak Hadir)
-                </button>
-                
-                <button class="btn btn-danger btn-full" id="btn-reset" style="margin-top: 1rem;">
-                    <i class="fa-solid fa-trash-can"></i> Reset Antrian
-                </button>
-            </div>
-
-            <!-- Daftar Dilewati -->
-            <div style="background: rgba(0,0,0,0.2); padding: 1.5rem; border-radius: 16px; border: 1px solid var(--glass-border);">
-                <h3 style="color: var(--text-main); font-size: 1.1rem; margin-bottom: 1rem;">Daftar Antrian Dilewati / Tertunda</h3>
-                <div class="skipped-list" id="skipped-list-container">
-                    <p style="color: var(--text-muted); font-size: 0.9rem; text-align: center;">Tidak ada antrian yang dilewati</p>
-                </div>
-            </div>
-
-            <!-- Daftar Semua Antrian -->
-            <div style="background: rgba(0,0,0,0.2); padding: 1.5rem; border-radius: 16px; border: 1px solid var(--glass-border); margin-top: 1rem;">
-                <h3 style="color: var(--text-main); font-size: 1.1rem; margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between;">
-                    <span><i class="fa-solid fa-list-ol" style="color: var(--primary);"></i> Daftar Antrian Hari Ini</span>
-                    <span id="queue-count" style="font-size: 0.9rem; color: var(--text-muted); font-weight: normal;">0 Antrian</span>
-                </h3>
-                <div style="overflow-x: auto; max-height: 400px; overflow-y: auto;">
-                    <table class="queue-table">
-                        <thead>
-                            <tr>
-                                <th style="width: 10%;">No</th>
-                                <th style="width: 25%;">Nama</th>
-                                <th style="width: 25%;">KTP / HP</th>
-                                <th style="width: 20%;">Alamat</th>
-                                <th style="width: 10%;">Status</th>
-                                <th style="width: 10%; text-align: center;">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody id="all-queues-list-container">
-                            <tr>
-                                <td colspan="6" style="padding: 2rem; text-align: center; color: var(--text-muted);">Belum ada data antrian</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    <!-- Daftar Semua Antrian -->
+                    <div class="glass-subcard table-container">
+                        <h3
+                            style="color: var(--text-main); font-size: 1.1rem; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between;">
+                            <span><i class="fa-solid fa-list-ol" style="color: var(--primary);"></i> Daftar Antrian Hari
+                                Ini</span>
+                            <span id="queue-count"
+                                style="font-size: 0.85rem; color: var(--text-muted); font-weight: normal;">0
+                                Antrian</span>
+                        </h3>
+                        <div class="table-wrapper">
+                            <table class="queue-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 10%;">No</th>
+                                        <th style="width: 25%;">Nama</th>
+                                        <th style="width: 25%;">KTP / HP</th>
+                                        <th style="width: 20%;">Alamat</th>
+                                        <th style="width: 10%;">Status</th>
+                                        <th style="width: 10%; text-align: center;">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="all-queues-list-container">
+                                    <tr>
+                                        <td colspan="6"
+                                            style="padding: 2rem; text-align: center; color: var(--text-muted);">Belum
+                                            ada data antrian</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -326,7 +645,8 @@
     <!-- Info Akun Modal -->
     <div class="modal-overlay" id="info-modal">
         <div class="modal-content" style="max-width: 400px; text-align: left;">
-            <h3 style="margin-bottom: 1.5rem; color: var(--text-main);"><i class="fa-solid fa-user-gear"></i> Info Akun Admin</h3>
+            <h3 style="margin-bottom: 1.5rem; color: var(--text-main);"><i class="fa-solid fa-user-gear"></i> Info Akun
+                Admin</h3>
             <div class="form-group">
                 <label>Nomor HP Pemulihan</label>
                 <input type="text" id="info-phone" class="form-control" placeholder="Contoh: 081234567890">
@@ -345,13 +665,16 @@
     <!-- Forgot Password Modal -->
     <div class="modal-overlay" id="forgot-modal">
         <div class="modal-content" style="max-width: 400px; text-align: left;">
-            <h3 style="margin-bottom: 1.5rem; color: var(--text-main);"><i class="fa-solid fa-key"></i> Lupa Password</h3>
-            
+            <h3 style="margin-bottom: 1.5rem; color: var(--text-main);"><i class="fa-solid fa-key"></i> Lupa Password
+            </h3>
+
             <div id="forgot-step-1">
-                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">Masukkan nomor HP yang terdaftar untuk menerima kode OTP.</p>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">Masukkan nomor HP yang
+                    terdaftar untuk menerima kode OTP.</p>
                 <div class="form-group">
                     <label>Nomor HP</label>
-                    <input type="text" id="forgot-phone" class="form-control" placeholder="Nomor HP terdaftar (default: 081234567890)">
+                    <input type="text" id="forgot-phone" class="form-control"
+                        placeholder="Nomor HP terdaftar (default: 081234567890)">
                 </div>
                 <div style="display: flex; gap: 0.5rem;">
                     <button class="btn btn-primary" id="btn-send-otp" style="flex: 1;">Kirim OTP</button>
@@ -360,7 +683,8 @@
             </div>
 
             <div id="forgot-step-2" style="display: none;">
-                <p style="color: var(--success); font-size: 0.9rem; margin-bottom: 1rem;">Kode OTP telah dikirim (Simulasi via Alert).</p>
+                <p style="color: var(--success); font-size: 0.9rem; margin-bottom: 1rem;">Kode OTP telah dikirim
+                    (Simulasi via Alert).</p>
                 <div class="form-group">
                     <label>Kode OTP</label>
                     <input type="text" id="forgot-otp" class="form-control" placeholder="Masukkan 4 digit OTP">
@@ -371,7 +695,9 @@
                 </div>
                 <div style="display: flex; gap: 0.5rem;">
                     <button class="btn btn-primary" id="btn-reset-password" style="flex: 1;">Reset Password</button>
-                    <button class="btn btn-outline" onclick="document.getElementById('forgot-modal').classList.remove('active');" style="flex: 1;">Batal</button>
+                    <button class="btn btn-outline"
+                        onclick="document.getElementById('forgot-modal').classList.remove('active');"
+                        style="flex: 1;">Batal</button>
                 </div>
             </div>
         </div>
@@ -414,15 +740,15 @@
         const passwordInput = document.getElementById('password');
         const loginError = document.getElementById('login-error');
         const btnLogout = document.getElementById('btn-logout');
-        
+
         const adminCurrentEl = document.getElementById('admin-current-queue');
         const adminTotalEl = document.getElementById('admin-total-queue');
-        
+
         const btnCallNext = document.getElementById('btn-call-next');
         const btnRecall = document.getElementById('btn-recall');
         const btnSkip = document.getElementById('btn-skip');
         const btnReset = document.getElementById('btn-reset');
-        
+
         const customNumberInput = document.getElementById('custom-number');
         const btnSetCustom = document.getElementById('btn-set-custom');
         const skippedListContainer = document.getElementById('skipped-list-container');
@@ -437,14 +763,14 @@
         const forgotOtp = document.getElementById('forgot-otp');
         const forgotNewPassword = document.getElementById('forgot-new-password');
         const btnResetPassword = document.getElementById('btn-reset-password');
-        
+
         const btnInfo = document.getElementById('btn-info');
         const infoModal = document.getElementById('info-modal');
         const btnCloseInfo = document.getElementById('btn-close-info');
         const btnSaveInfo = document.getElementById('btn-save-info');
         const infoPhone = document.getElementById('info-phone');
         const infoPassword = document.getElementById('info-password');
-        
+
         let generatedOTP = "";
 
         // Default Account Details
@@ -454,6 +780,35 @@
         // Check login state
         if (sessionStorage.getItem('is_admin_logged_in') === 'true') {
             showDashboard();
+        }
+
+        // Collapsible Detail Card Logic
+        const btnToggleDetail = document.getElementById('btn-toggle-detail');
+        const adminDetailCard = document.getElementById('admin-detail-card');
+        const iconToggleDetail = document.getElementById('icon-toggle-detail');
+
+        if (btnToggleDetail && adminDetailCard) {
+            btnToggleDetail.addEventListener('click', () => {
+                const isCollapsed = adminDetailCard.classList.toggle('collapsed');
+                const btnText = btnToggleDetail.querySelector('span');
+                if (isCollapsed) {
+                    if (iconToggleDetail) iconToggleDetail.className = 'fa-solid fa-chevron-down';
+                    if (btnText) btnText.innerText = 'Tampilkan';
+                    localStorage.setItem('admin_detail_collapsed', 'true');
+                } else {
+                    if (iconToggleDetail) iconToggleDetail.className = 'fa-solid fa-chevron-up';
+                    if (btnText) btnText.innerText = 'Sembunyikan';
+                    localStorage.setItem('admin_detail_collapsed', 'false');
+                }
+            });
+
+            // Restore state on load
+            if (localStorage.getItem('admin_detail_collapsed') === 'true') {
+                adminDetailCard.classList.add('collapsed');
+                const btnText = btnToggleDetail.querySelector('span');
+                if (iconToggleDetail) iconToggleDetail.className = 'fa-solid fa-chevron-down';
+                if (btnText) btnText.innerText = 'Tampilkan';
+            }
         }
 
         loginForm.addEventListener('submit', (e) => {
@@ -472,13 +827,15 @@
             sessionStorage.removeItem('is_admin_logged_in');
             loginSection.style.display = 'block';
             dashboardSection.style.display = 'none';
+            document.body.classList.remove('dashboard-active');
             passwordInput.value = '';
             loginError.style.display = 'none';
         });
 
         function showDashboard() {
             loginSection.style.display = 'none';
-            dashboardSection.style.display = 'block';
+            dashboardSection.style.display = 'flex';
+            document.body.classList.add('dashboard-active');
         }
 
         // --- Queue Logic ---
@@ -501,19 +858,19 @@
         function updateAdminDisplay() {
             adminCurrentEl.innerText = formatQueue(dbState.current || 0);
             adminTotalEl.innerText = dbState.total || 0;
-            
+
             // Update Current Visitor Details
             const currentNum = dbState.current || 0;
             const tickets = dbState.tickets || {};
             const currentTicket = tickets[currentNum];
-            
+
             const currentUserDetailsEl = document.getElementById('current-user-details');
             const noCurrentUserEl = document.getElementById('no-current-user');
-            
+
             if (currentNum > 0 && currentTicket) {
                 currentUserDetailsEl.style.display = 'grid';
                 noCurrentUserEl.style.display = 'none';
-                
+
                 document.getElementById('detail-name').innerText = currentTicket.name || '-';
                 document.getElementById('detail-ktp').innerText = currentTicket.ktp || '-';
                 document.getElementById('detail-phone').innerText = currentTicket.phone || '-';
@@ -538,7 +895,7 @@
                 skippedListContainer.innerHTML = '<p style="color: var(--text-muted); font-size: 0.9rem; text-align: center;">Tidak ada antrian yang dilewati</p>';
                 return;
             }
-            
+
             skippedListContainer.innerHTML = '';
             skipped.forEach(num => {
                 const div = document.createElement('div');
@@ -569,7 +926,7 @@
 
             // Get all ticket keys and count them
             const ticketKeys = Object.keys(tickets).map(Number).sort((a, b) => a - b);
-            
+
             queueCountEl.innerText = `${ticketKeys.length} Antrian`;
 
             if (ticketKeys.length === 0) {
@@ -585,7 +942,7 @@
             }
 
             allQueuesListContainer.innerHTML = '';
-            
+
             ticketKeys.forEach(num => {
                 const ticket = tickets[num];
                 if (!ticket) return;
@@ -593,7 +950,7 @@
                 // Calculate status
                 let statusText = 'Menunggu';
                 let badgeClass = 'badge-waiting';
-                
+
                 if (num === current) {
                     statusText = 'Dipanggil';
                     badgeClass = 'badge-calling';
@@ -606,7 +963,7 @@
                 }
 
                 const tr = document.createElement('tr');
-                
+
                 // Truncate address for clean layout
                 const addressText = ticket.address || '-';
                 const truncatedAddress = addressText.length > 20 ? (addressText.slice(0, 17) + '...') : addressText;
@@ -718,7 +1075,7 @@
         btnCallNext.addEventListener('click', async () => {
             let highest = dbState.highest || dbState.current || 0;
             let total = dbState.total || 0;
-            
+
             if (highest < total) {
                 highest++;
                 const selectedDesk = document.getElementById('select-desk').value;
@@ -872,7 +1229,7 @@
         btnSaveInfo.addEventListener('click', () => {
             const newPhone = infoPhone.value.trim();
             const newPwd = infoPassword.value.trim();
-            
+
             if (newPhone) {
                 localStorage.setItem('admin_phone', newPhone);
             }
@@ -889,4 +1246,5 @@
         });
     </script>
 </body>
+
 </html>

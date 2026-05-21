@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grafik Analisis Pengunjung - AntrianPro</title>
+    <meta name="description" content="Halaman grafik statistik dan analisis harian nomor antrian.">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Authentication Gate Script (Runs immediately to block FOUC) -->
+    <script>
+        if (sessionStorage.getItem('is_admin_logged_in') !== 'true') {
+            alert("Akses ditolak! Silakan login sebagai admin terlebih dahulu.");
+            window.location.href = "admin.html";
+        }
+    </script>
+    
+    <!-- Load Chart.js from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        /* Custom scrollbar for premium feel */
+        .queue-table::-webkit-scrollbar,
+        div::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .queue-table::-webkit-scrollbar-track,
+        div::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.01);
+            border-radius: 3px;
+        }
+        .queue-table::-webkit-scrollbar-thumb,
+        div::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+        .queue-table::-webkit-scrollbar-thumb:hover,
+        div::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .queue-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.95rem;
+            margin-top: 0.5rem;
+        }
+
+        .queue-table th {
+            padding: 0.8rem 1rem;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--glass-border);
+            font-weight: 600;
+        }
+
+        .queue-table td {
+            padding: 0.8rem 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            vertical-align: middle;
+        }
+
+        .queue-table tr {
+            transition: background-color 0.2s;
+        }
+
+        .queue-table tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-glow"></div>
+    <div class="bg-glow-2"></div>
+
+    <header>
+        <h1><i class="fa-solid fa-layer-group"></i> AntrianPro</h1>
+        <nav class="nav-links">
+            <a href="index.html">Display</a>
+            <a href="admin.html">Dashboard Admin</a>
+            <a href="grafik.html" class="active">Grafik Pengunjung</a>
+        </nav>
+    </header>
+
+    <main style="padding: 2rem 1.5rem; display: flex; justify-content: center; align-items: flex-start; min-height: calc(100vh - 75px); flex: 1;">
+        <div class="glass-card" style="max-width: 1000px; width: 100%; text-align: left; padding: 2rem 2.5rem; display: flex; flex-direction: column; gap: 1.5rem; position: relative;">
+            <!-- Header and Navigation Actions -->
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--glass-border); padding-bottom: 1rem; width: 100%;">
+                <h2 style="color: var(--text-main); font-weight: 800; display: flex; align-items: center; gap: 0.5rem; margin: 0; font-size: 1.5rem; font-family: 'Outfit', sans-serif;">
+                    <i class="fa-solid fa-chart-line" style="color: var(--primary);"></i> Grafik Analisis Pengunjung
+                </h2>
+                <button class="btn btn-outline" onclick="window.location.href='admin.html'" style="padding: 0.5rem 1rem; font-size: 0.9rem; border-radius: 8px;">
+                    <i class="fa-solid fa-arrow-left"></i> Kembali ke Dashboard
+                </button>
+            </div>
+
+            <!-- Stats Overview Row -->
+            <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 0.5rem; gap: 1rem; width: 100%;">
+                <div class="stat-box" style="padding: 1.2rem; border-radius: 12px; display: flex; flex-direction: column; gap: 0.25rem;">
+                    <div class="stat-label" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;"><i class="fa-solid fa-users" style="color: var(--primary);"></i> Total Pengunjung</div>
+                    <div class="stat-value" id="stat-total" style="font-size: 2rem; font-weight: 800;">0</div>
+                </div>
+                <div class="stat-box" style="padding: 1.2rem; border-radius: 12px; display: flex; flex-direction: column; gap: 0.25rem;">
+                    <div class="stat-label" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;"><i class="fa-solid fa-calendar-day" style="color: var(--success);"></i> Pengunjung Hari Ini</div>
+                    <div class="stat-value" id="stat-today" style="font-size: 2rem; font-weight: 800; color: var(--success);">0</div>
+                </div>
+                <div class="stat-box" style="padding: 1.2rem; border-radius: 12px; display: flex; flex-direction: column; gap: 0.25rem;">
+                    <div class="stat-label" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;"><i class="fa-solid fa-calculator" style="color: var(--accent);"></i> Rata-rata Harian</div>
+                    <div class="stat-value" id="stat-average" style="font-size: 2rem; font-weight: 800; color: var(--accent);">0</div>
+                </div>
+            </div>
+
+            <!-- Chart Visualization Subcard -->
+            <div class="glass-subcard" style="background: rgba(0, 0, 0, 0.2); border-radius: 16px; padding: 1.5rem; width: 100%;">
+                <h3 style="color: var(--text-main); font-size: 1.1rem; margin-bottom: 1.2rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fa-solid fa-chart-area" style="color: var(--primary);"></i> Tren Kunjungan Harian
+                </h3>
+                <div style="position: relative; height: 320px; width: 100%;">
+                    <canvas id="visitorChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Detailed Table Breakdown -->
+            <div class="glass-subcard" style="background: rgba(0, 0, 0, 0.2); border-radius: 16px; padding: 1.5rem; width: 100%;">
+                <h3 style="color: var(--text-main); font-size: 1.1rem; margin-bottom: 0.8rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fa-solid fa-list-check" style="color: var(--accent);"></i> Rincian Jumlah Pengunjung Harian
+                </h3>
+                <div style="max-height: 220px; overflow-y: auto; padding-right: 4px;">
+                    <table class="queue-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 50%;">Tanggal</th>
+                                <th style="width: 50%; text-align: right;">Jumlah Pengunjung</th>
+                            </tr>
+                        </thead>
+                        <tbody id="chart-table-body">
+                            <tr>
+                                <td colspan="2" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                                    <i class="fa-solid fa-spinner fa-spin" style="margin-right: 0.5rem;"></i> Memuat data...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer style="text-align: center; padding: 1.5rem; color: var(--text-muted); font-size: 0.9rem; width: 100%;">
+        &copy; 2026 by kenzo_project
+    </footer>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-database.js";
+
+        // =========================================================================
+        // FIREBASE PROJECT CONFIGURATION
+        // =========================================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyAYC6ON6h5csqT-0bK_cUJLI16f4ucfrgE",
+            authDomain: "antrianpro1.firebaseapp.com",
+            databaseURL: "https://antrianpro1-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "antrianpro1",
+            storageBucket: "antrianpro1.firebasestorage.app",
+            messagingSenderId: "883903710328",
+            appId: "1:883903710328:web:996126ee5361a59ea0d98d",
+            measurementId: "G-M3ED7W19PX"
+        };
+        // =========================================================================
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const queueRef = ref(db, 'queue');
+
+        let visitorChart = null;
+
+        // Subscribe to changes in Firebase Realtime Database
+        onValue(queueRef, (snapshot) => {
+            let dbState = { current: 0, total: 0, highest: 0, skipped_queues: [], tickets: {} };
+            if (snapshot.exists()) {
+                const val = snapshot.val();
+                dbState = { ...dbState, ...val };
+                if (!dbState.tickets) dbState.tickets = {};
+            }
+            updateDashboard(dbState);
+        });
+
+        function updateDashboard(dbState) {
+            const tickets = dbState.tickets || {};
+            const totalTickets = Object.keys(tickets).length;
+
+            // Aggregations variables
+            const dateCounts = {};
+            let todayCount = 0;
+
+            const todayStr = getLocalDateString(new Date());
+
+            Object.values(tickets).forEach(ticket => {
+                if (ticket.timestamp) {
+                    const dateObj = new Date(ticket.timestamp);
+                    const dateKey = getLocalDateString(dateObj); // Format: "YYYY-MM-DD"
+                    
+                    dateCounts[dateKey] = (dateCounts[dateKey] || 0) + 1;
+                    
+                    if (dateKey === todayStr) {
+                        todayCount++;
+                    }
+                }
+            });
+
+            // Populate Stats Cards
+            document.getElementById('stat-total').innerText = totalTickets;
+            document.getElementById('stat-today').innerText = todayCount;
+
+            const uniqueDays = Object.keys(dateCounts).length;
+            const avgVal = uniqueDays > 0 ? (totalTickets / uniqueDays).toFixed(1) : 0;
+            document.getElementById('stat-average').innerText = avgVal;
+
+            // Sort dates chronologically
+            const sortedDates = Object.keys(dateCounts).sort();
+
+            // Prepare chart labels and dataset
+            const monthsIndo = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+            let chartLabels = sortedDates.map(dateStr => {
+                const [year, month, day] = dateStr.split('-');
+                return `${parseInt(day)} ${monthsIndo[parseInt(month) - 1]}`;
+            });
+            let chartData = sortedDates.map(dateStr => dateCounts[dateStr]);
+
+            // Handle empty chart case gracefully by showing today with 0 count
+            if (sortedDates.length === 0) {
+                const today = new Date();
+                chartLabels = [`${today.getDate()} ${monthsIndo[today.getMonth()]}`];
+                chartData = [0];
+            }
+
+            // Update Table Breakdown
+            const tableBody = document.getElementById('chart-table-body');
+            if (sortedDates.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="2" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                            <i class="fa-solid fa-inbox" style="font-size: 1.5rem; display: block; margin-bottom: 0.5rem; opacity: 0.5;"></i>
+                            Belum ada data pendaftaran antrian
+                        </td>
+                    </tr>
+                `;
+            } else {
+                tableBody.innerHTML = '';
+                // Display newest dates first
+                [...sortedDates].reverse().forEach(dateStr => {
+                    const [year, month, day] = dateStr.split('-');
+                    const displayDate = `${parseInt(day)} ${monthsIndo[parseInt(month) - 1]} ${year}`;
+                    const count = dateCounts[dateStr];
+                    
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td style="font-weight: 500; color: var(--text-main);">${displayDate}</td>
+                        <td style="text-align: right; font-weight: bold; color: var(--primary);">${count} Pengunjung</td>
+                    `;
+                    tableBody.appendChild(tr);
+                });
+            }
+
+            // Render or update the Chart.js line graph
+            renderChart(chartLabels, chartData);
+        }
+
+        // Helper to format date object to local YYYY-MM-DD
+        function getLocalDateString(dateObj) {
+            const year = dateObj.getFullYear();
+            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const day = String(dateObj.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function renderChart(labels, data) {
+            const canvas = document.getElementById('visitorChart');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            
+            // Create nice primary-to-translucent gradient for the area chart
+            const gradient = ctx.createLinearGradient(0, 0, 0, 280);
+            gradient.addColorStop(0, 'rgba(59, 130, 246, 0.4)');
+            gradient.addColorStop(1, 'rgba(139, 92, 246, 0.0)');
+
+            if (visitorChart) {
+                visitorChart.data.labels = labels;
+                visitorChart.data.datasets[0].data = data;
+                visitorChart.data.datasets[0].backgroundColor = gradient;
+                visitorChart.update();
+                return;
+            }
+
+            visitorChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Jumlah Pengunjung',
+                        data: data,
+                        borderColor: '#3b82f6', // primary blue color
+                        borderWidth: 3,
+                        backgroundColor: gradient,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#8b5cf6', // accent purple for point markers
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 5,
+                        pointHoverRadius: 7
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false // hide legend as single series is obvious
+                        },
+                        tooltip: {
+                            backgroundColor: '#18181b',
+                            titleColor: '#f8fafc',
+                            bodyColor: '#94a3b8',
+                            borderColor: 'rgba(255, 255, 255, 0.08)',
+                            borderWidth: 1,
+                            padding: 12,
+                            borderRadius: 8,
+                            displayColors: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return ` ${context.parsed.y} Pengunjung`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.04)',
+                                drawTicks: false
+                            },
+                            ticks: {
+                                color: '#94a3b8',
+                                padding: 8,
+                                font: {
+                                    family: "'Inter', sans-serif",
+                                    size: 11
+                                }
+                            }
+                        },
+                        y: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.04)',
+                                drawTicks: false
+                            },
+                            ticks: {
+                                color: '#94a3b8',
+                                stepSize: 1,
+                                precision: 0,
+                                padding: 8,
+                                font: {
+                                    family: "'Inter', sans-serif",
+                                    size: 11
+                                }
+                            },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
