@@ -68,6 +68,93 @@
             padding: 0.4rem 0.8rem;
             font-size: 0.8rem;
         }
+
+        /* Detail Card Grid */
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-top: 1rem;
+            text-align: left;
+        }
+
+        .detail-item {
+            background: rgba(0, 0, 0, 0.15);
+            padding: 0.8rem 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .detail-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: block;
+            margin-bottom: 0.2rem;
+        }
+
+        .detail-value {
+            font-size: 0.95rem;
+            color: var(--text-main);
+            font-weight: 600;
+        }
+
+        /* Status Badge */
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.6rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .badge-waiting {
+            background: rgba(245, 158, 11, 0.1);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.2);
+        }
+        .badge-calling {
+            background: rgba(59, 130, 246, 0.1);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+        .badge-skipped {
+            background: rgba(139, 92, 246, 0.1);
+            color: #a78bfa;
+            border: 1px solid rgba(139, 92, 246, 0.2);
+        }
+        .badge-served {
+            background: rgba(16, 185, 129, 0.1);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        /* Table styles */
+        .queue-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+        .queue-table th {
+            padding: 0.75rem 0.5rem;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--glass-border);
+            font-weight: 600;
+        }
+        .queue-table td {
+            padding: 0.75rem 0.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            vertical-align: middle;
+        }
+        .queue-table tr {
+            transition: background-color 0.2s;
+        }
+        .queue-table tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
     </style>
 </head>
 <body>
@@ -126,6 +213,50 @@
                 </div>
             </div>
 
+            <!-- Detail Pengunjung Saat Ini -->
+            <div id="admin-detail-card" style="background: rgba(0,0,0,0.2); padding: 1.5rem; border-radius: 16px; border: 1px solid var(--glass-border); margin-bottom: 1rem; text-align: left;">
+                <h3 style="color: var(--text-main); font-size: 1.1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fa-solid fa-circle-info" style="color: var(--primary);"></i> Detail Pengunjung Saat Ini
+                </h3>
+                <div id="current-user-details" class="detail-grid">
+                    <div class="detail-item">
+                        <span class="detail-label">Nama Lengkap</span>
+                        <span class="detail-value" id="detail-name">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Nomor KTP</span>
+                        <span class="detail-value" id="detail-ktp">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Nomor HP</span>
+                        <span class="detail-value" id="detail-phone">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Alamat Lengkap</span>
+                        <span class="detail-value" id="detail-address">-</span>
+                    </div>
+                    <div class="detail-item" style="grid-column: span 2;">
+                        <span class="detail-label">Loket / Meja Pelayanan Saat Ini</span>
+                        <span class="detail-value" id="detail-desk" style="color: var(--primary); font-size: 1.1rem; font-weight: 800;">-</span>
+                    </div>
+                </div>
+                <div id="no-current-user" style="color: var(--text-muted); text-align: center; padding: 1.5rem 0; font-size: 0.95rem;">
+                    <i class="fa-solid fa-users-slash" style="font-size: 2rem; margin-bottom: 0.5rem; display: block; opacity: 0.5;"></i>
+                    Belum ada antrian yang dipanggil atau data kosong.
+                </div>
+            </div>
+
+            <!-- Loket Tujuan / Meja Pelayanan -->
+            <div style="background: rgba(0,0,0,0.2); padding: 1.5rem; border-radius: 16px; border: 1px solid var(--glass-border); margin-bottom: 1rem; text-align: left;">
+                <label for="select-desk" style="display:block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">
+                    <i class="fa-solid fa-desktop" style="color: var(--primary);"></i> Meja Pelayanan / Loket Tujuan
+                </label>
+                <select id="select-desk" class="form-control" style="background: #18181b; color: var(--text-main); border: 1px solid var(--glass-border); width: 100%;">
+                    <option value="Meja Registrasi" style="background: #18181b;">Meja Registrasi</option>
+                    <option value="Meja Perekaman Biometrik" style="background: #18181b;">Meja Perekaman Biometrik</option>
+                </select>
+            </div>
+
             <!-- Custom Ubah Nomor -->
             <div style="background: rgba(0,0,0,0.2); padding: 1.5rem; border-radius: 16px; border: 1px solid var(--glass-border); margin-bottom: 1rem;">
                 <label style="display:block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">Lompat ke Nomor Tertentu (Opsional)</label>
@@ -160,6 +291,33 @@
                 <h3 style="color: var(--text-main); font-size: 1.1rem; margin-bottom: 1rem;">Daftar Antrian Dilewati / Tertunda</h3>
                 <div class="skipped-list" id="skipped-list-container">
                     <p style="color: var(--text-muted); font-size: 0.9rem; text-align: center;">Tidak ada antrian yang dilewati</p>
+                </div>
+            </div>
+
+            <!-- Daftar Semua Antrian -->
+            <div style="background: rgba(0,0,0,0.2); padding: 1.5rem; border-radius: 16px; border: 1px solid var(--glass-border); margin-top: 1rem;">
+                <h3 style="color: var(--text-main); font-size: 1.1rem; margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between;">
+                    <span><i class="fa-solid fa-list-ol" style="color: var(--primary);"></i> Daftar Antrian Hari Ini</span>
+                    <span id="queue-count" style="font-size: 0.9rem; color: var(--text-muted); font-weight: normal;">0 Antrian</span>
+                </h3>
+                <div style="overflow-x: auto; max-height: 400px; overflow-y: auto;">
+                    <table class="queue-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 10%;">No</th>
+                                <th style="width: 25%;">Nama</th>
+                                <th style="width: 25%;">KTP / HP</th>
+                                <th style="width: 20%;">Alamat</th>
+                                <th style="width: 10%;">Status</th>
+                                <th style="width: 10%; text-align: center;">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="all-queues-list-container">
+                            <tr>
+                                <td colspan="6" style="padding: 2rem; text-align: center; color: var(--text-muted);">Belum ada data antrian</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -333,8 +491,9 @@
             if (snapshot.exists()) {
                 dbState = snapshot.val();
                 if (!dbState.skipped_queues) dbState.skipped_queues = [];
+                if (!dbState.tickets) dbState.tickets = {};
             } else {
-                dbState = { current: 0, total: 0, highest: 0, skipped_queues: [] };
+                dbState = { current: 0, total: 0, highest: 0, skipped_queues: [], tickets: {} };
             }
             updateAdminDisplay();
         });
@@ -343,7 +502,34 @@
             adminCurrentEl.innerText = formatQueue(dbState.current || 0);
             adminTotalEl.innerText = dbState.total || 0;
             
+            // Update Current Visitor Details
+            const currentNum = dbState.current || 0;
+            const tickets = dbState.tickets || {};
+            const currentTicket = tickets[currentNum];
+            
+            const currentUserDetailsEl = document.getElementById('current-user-details');
+            const noCurrentUserEl = document.getElementById('no-current-user');
+            
+            if (currentNum > 0 && currentTicket) {
+                currentUserDetailsEl.style.display = 'grid';
+                noCurrentUserEl.style.display = 'none';
+                
+                document.getElementById('detail-name').innerText = currentTicket.name || '-';
+                document.getElementById('detail-ktp').innerText = currentTicket.ktp || '-';
+                document.getElementById('detail-phone').innerText = currentTicket.phone || '-';
+                document.getElementById('detail-address').innerText = currentTicket.address || '-';
+                document.getElementById('detail-desk').innerText = dbState.current_desk || '-';
+                if (dbState.current_desk) {
+                    document.getElementById('select-desk').value = dbState.current_desk;
+                }
+            } else {
+                currentUserDetailsEl.style.display = 'none';
+                noCurrentUserEl.style.display = 'block';
+                document.getElementById('detail-desk').innerText = '-';
+            }
+
             renderSkippedList();
+            renderAllQueuesList();
         }
 
         function renderSkippedList() {
@@ -372,9 +558,149 @@
             });
         }
 
+        const allQueuesListContainer = document.getElementById('all-queues-list-container');
+        const queueCountEl = document.getElementById('queue-count');
+
+        function renderAllQueuesList() {
+            const tickets = dbState.tickets || {};
+            const current = dbState.current || 0;
+            const highest = dbState.highest || 0;
+            const skipped = dbState.skipped_queues || [];
+
+            // Get all ticket keys and count them
+            const ticketKeys = Object.keys(tickets).map(Number).sort((a, b) => a - b);
+            
+            queueCountEl.innerText = `${ticketKeys.length} Antrian`;
+
+            if (ticketKeys.length === 0) {
+                allQueuesListContainer.innerHTML = `
+                    <tr>
+                        <td colspan="6" style="padding: 2rem; text-align: center; color: var(--text-muted);">
+                            <i class="fa-solid fa-inbox" style="font-size: 1.5rem; display: block; margin-bottom: 0.5rem; opacity: 0.5;"></i>
+                            Belum ada data antrian
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            allQueuesListContainer.innerHTML = '';
+            
+            ticketKeys.forEach(num => {
+                const ticket = tickets[num];
+                if (!ticket) return;
+
+                // Calculate status
+                let statusText = 'Menunggu';
+                let badgeClass = 'badge-waiting';
+                
+                if (num === current) {
+                    statusText = 'Dipanggil';
+                    badgeClass = 'badge-calling';
+                } else if (skipped.includes(num)) {
+                    statusText = 'Dilewati';
+                    badgeClass = 'badge-skipped';
+                } else if (num <= highest) {
+                    statusText = 'Selesai';
+                    badgeClass = 'badge-served';
+                }
+
+                const tr = document.createElement('tr');
+                
+                // Truncate address for clean layout
+                const addressText = ticket.address || '-';
+                const truncatedAddress = addressText.length > 20 ? (addressText.slice(0, 17) + '...') : addressText;
+
+                // Action buttons based on status
+                let actionHtml = '';
+                if (statusText === 'Menunggu') {
+                    actionHtml = `<button class="btn btn-outline btn-small" id="btn-table-call-${num}" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;"><i class="fa-solid fa-bullhorn"></i> Panggil</button>`;
+                } else if (statusText === 'Dipanggil') {
+                    actionHtml = `
+                        <div style="display: flex; gap: 0.25rem; justify-content: center;">
+                            <button class="btn btn-outline btn-small" id="btn-table-skip-${num}" style="padding: 0.3rem 0.6rem; font-size: 0.8rem; color: #c084fc; border-color: rgba(192, 132, 252, 0.3);"><i class="fa-solid fa-forward-step"></i> Lewati</button>
+                            <button class="btn btn-outline btn-small" id="btn-table-serve-${num}" style="padding: 0.3rem 0.6rem; font-size: 0.8rem; color: var(--success); border-color: rgba(16, 185, 129, 0.3);"><i class="fa-solid fa-check"></i> Selesai</button>
+                        </div>
+                    `;
+                } else if (statusText === 'Dilewati') {
+                    actionHtml = `
+                        <div style="display: flex; gap: 0.25rem; justify-content: center;">
+                            <button class="btn btn-outline btn-small" id="btn-table-call-${num}" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;"><i class="fa-solid fa-bullhorn"></i> Panggil</button>
+                            <button class="btn btn-outline btn-small" id="btn-table-serve-${num}" style="padding: 0.3rem 0.6rem; font-size: 0.8rem; color: var(--success); border-color: rgba(16, 185, 129, 0.3);"><i class="fa-solid fa-check"></i> Selesai</button>
+                        </div>
+                    `;
+                } else {
+                    // Selesai status: just show checkmark
+                    actionHtml = `<span style="color: var(--success); font-size: 1.1rem;"><i class="fa-solid fa-circle-check"></i></span>`;
+                }
+
+                tr.innerHTML = `
+                    <td style="font-weight: bold; color: var(--text-main);">${formatQueue(num)}</td>
+                    <td style="font-weight: 500;">${ticket.name || '-'}</td>
+                    <td>
+                        <div style="font-size: 0.85rem; color: var(--text-main);">${ticket.ktp || '-'}</div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">${ticket.phone || '-'}</div>
+                    </td>
+                    <td title="${addressText}">${truncatedAddress}</td>
+                    <td><span class="badge ${badgeClass}">${statusText}</span></td>
+                    <td style="text-align: center;">${actionHtml}</td>
+                `;
+
+                allQueuesListContainer.appendChild(tr);
+
+                // Add event listeners dynamically
+                if (statusText === 'Menunggu' || statusText === 'Dilewati') {
+                    document.getElementById(`btn-table-call-${num}`).addEventListener('click', () => callDirect(num));
+                }
+                if (statusText === 'Dipanggil') {
+                    document.getElementById(`btn-table-skip-${num}`).addEventListener('click', () => skipDirect(num));
+                    document.getElementById(`btn-table-serve-${num}`).addEventListener('click', () => serveDirect(num));
+                }
+                if (statusText === 'Dilewati') {
+                    document.getElementById(`btn-table-serve-${num}`).addEventListener('click', () => removeSkipped(num));
+                }
+            });
+        }
+
+        async function callDirect(num) {
+            const selectedDesk = document.getElementById('select-desk').value;
+            let updates = {
+                current: num,
+                current_desk: selectedDesk,
+                update_trigger: Date.now(),
+                call_trigger: Date.now()
+            };
+            if (num > (dbState.highest || 0)) {
+                updates.highest = num;
+            }
+            await update(queueRef, updates);
+        }
+
+        async function skipDirect(num) {
+            let skipped = dbState.skipped_queues || [];
+            if (!skipped.includes(num)) {
+                skipped.push(num);
+                await update(queueRef, {
+                    skipped_queues: skipped
+                });
+            }
+        }
+
+        async function serveDirect(num) {
+            // Marking currently called ticket as served:
+            // Set current to 0 in database so display goes to A-000
+            await update(queueRef, {
+                current: 0,
+                current_desk: null,
+                update_trigger: Date.now()
+            });
+        }
+
         async function recallSkipped(num) {
+            const selectedDesk = document.getElementById('select-desk').value;
             await update(queueRef, {
                 current: num,
+                current_desk: selectedDesk,
                 update_trigger: Date.now(),
                 call_trigger: Date.now()
             });
@@ -395,9 +721,11 @@
             
             if (highest < total) {
                 highest++;
+                const selectedDesk = document.getElementById('select-desk').value;
                 await update(queueRef, {
                     highest: highest,
                     current: highest,
+                    current_desk: selectedDesk,
                     update_trigger: Date.now(),
                     call_trigger: Date.now()
                 });
@@ -410,7 +738,9 @@
         btnRecall.addEventListener('click', async () => {
             const current = dbState.current || 0;
             if (current > 0) {
+                const selectedDesk = document.getElementById('select-desk').value;
                 await update(queueRef, {
+                    current_desk: selectedDesk,
                     call_trigger: Date.now()
                 });
             } else {
@@ -438,8 +768,10 @@
         btnSetCustom.addEventListener('click', async () => {
             const val = parseInt(customNumberInput.value);
             if (!isNaN(val) && val > 0) {
+                const selectedDesk = document.getElementById('select-desk').value;
                 let updates = {
                     current: val,
+                    current_desk: selectedDesk,
                     update_trigger: Date.now(),
                     call_trigger: Date.now()
                 };
@@ -466,7 +798,20 @@
                     current: 0,
                     total: 0,
                     highest: 0,
+                    current_desk: null,
                     skipped_queues: [],
+                    tickets: null,
+                    update_trigger: Date.now()
+                });
+            }
+        });
+
+        // Real-time desk update when selector changes
+        document.getElementById('select-desk').addEventListener('change', async (e) => {
+            const selectedDesk = e.target.value;
+            if (dbState.current > 0) {
+                await update(queueRef, {
+                    current_desk: selectedDesk,
                     update_trigger: Date.now()
                 });
             }

@@ -30,7 +30,13 @@
                 <div class="queue-number" id="current-queue">A-000</div>
             </div>
             
-            <p style="color: var(--text-muted); margin-bottom: 2rem;">Silakan menuju loket saat nomor Anda dipanggil.</p>
+            <!-- Loket / Meja Pelayanan Tujuan -->
+            <div id="calling-desk-container" style="display: none; margin-bottom: 2rem;">
+                <div style="font-size: 1rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 0.5rem;">Silakan Menuju Ke</div>
+                <div id="calling-desk" style="font-size: 2.2rem; font-weight: 800; color: var(--primary); text-shadow: 0 0 20px rgba(59, 130, 246, 0.4); background: rgba(59, 130, 246, 0.05); padding: 0.8rem 1.5rem; border-radius: 12px; border: 1px solid rgba(59, 130, 246, 0.2); display: inline-block;">-</div>
+            </div>
+            
+            <p id="queue-instruction" style="color: var(--text-muted); margin-bottom: 2rem;">Silakan menuju loket saat nomor Anda dipanggil.</p>
             
             <button class="btn btn-primary animate-pulse" id="btn-ambil-tiket" style="width: 100%; font-size: 1.2rem; padding: 1.2rem;">
                 <i class="fa-solid fa-ticket"></i> Ambil Nomor Antrian
@@ -42,6 +48,40 @@
         &copy; 2026 by kenzo_project
     </footer>
 
+    <!-- Modal Registrasi Pengunjung -->
+    <div class="modal-overlay" id="register-modal">
+        <div class="modal-content" style="max-width: 450px; text-align: left;">
+            <h3 style="margin-bottom: 1.2rem; color: var(--text-main); font-weight: 800; display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fa-solid fa-address-card" style="color: var(--primary);"></i> Registrasi Antrian
+            </h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
+                Silakan isi data diri Anda untuk mengambil nomor antrian.
+            </p>
+            <form id="register-form">
+                <div class="form-group">
+                    <label for="reg-name"><i class="fa-solid fa-user"></i> Nama Lengkap</label>
+                    <input type="text" id="reg-name" class="form-control" placeholder="Masukkan nama lengkap Anda" required>
+                </div>
+                <div class="form-group">
+                    <label for="reg-ktp"><i class="fa-solid fa-id-card"></i> Nomor KTP</label>
+                    <input type="text" id="reg-ktp" class="form-control" placeholder="Masukkan 16 digit nomor KTP" pattern="[0-9]{16}" title="Nomor KTP harus berupa 16 digit angka" required>
+                </div>
+                <div class="form-group">
+                    <label for="reg-phone"><i class="fa-solid fa-phone"></i> Nomor HP</label>
+                    <input type="tel" id="reg-phone" class="form-control" placeholder="Contoh: 081234567890" pattern="[0-9]{10,14}" title="Nomor HP harus berupa angka (10-14 digit)" required>
+                </div>
+                <div class="form-group">
+                    <label for="reg-address"><i class="fa-solid fa-location-dot"></i> Alamat Lengkap</label>
+                    <textarea id="reg-address" class="form-control" placeholder="Masukkan alamat lengkap" style="resize: vertical; min-height: 80px;" required></textarea>
+                </div>
+                <div style="display: flex; gap: 0.5rem; margin-top: 2rem;">
+                    <button type="button" class="btn btn-outline" id="btn-close-register" style="flex: 1;">Batal</button>
+                    <button type="submit" class="btn btn-primary" id="btn-submit-register" style="flex: 1;">Ambil Tiket</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Modal Tiket -->
     <div class="modal-overlay" id="ticket-modal">
         <div class="modal-content" style="max-width: 350px;">
@@ -51,6 +91,17 @@
                 <p style="color: var(--text-muted); font-size: 0.9rem;">Simpan foto tiket ini</p>
                 <div class="ticket-number" id="modal-ticket-number" style="font-size: 3.5rem; margin: 1.5rem 0; text-shadow: none;">A-000</div>
                 <div style="font-size: 0.8rem; color: var(--text-muted);" id="ticket-date"></div>
+                <!-- Info Pengunjung di Tiket -->
+                <div id="ticket-user-info" style="margin-top: 1.5rem; border-top: 1px dashed var(--glass-border); padding-top: 1rem; text-align: left; font-size: 0.85rem;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.4rem;">
+                        <span style="color: var(--text-muted); font-family: 'Inter', sans-serif;">Nama:</span>
+                        <span id="ticket-name" style="color: var(--text-main); font-weight: 600; font-family: 'Inter', sans-serif; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 180px;">-</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: var(--text-muted); font-family: 'Inter', sans-serif;">KTP:</span>
+                        <span id="ticket-ktp" style="color: var(--text-main); font-weight: 600; font-family: 'Inter', sans-serif;">-</span>
+                    </div>
+                </div>
             </div>
             <div style="display: flex; gap: 0.5rem;">
                 <button class="btn btn-outline" id="btn-download" style="flex: 1; font-size: 0.9rem; padding: 0.8rem;"><i class="fa-solid fa-download"></i> Simpan Foto</button>
@@ -102,20 +153,20 @@
         }
 
         // Check if user already has a ticket
-        function checkMyTicket() {
+        async function checkMyTicket() {
             const myTicket = localStorage.getItem('my_ticket');
             if (myTicket) {
-                btnAmbil.disabled = true;
                 btnAmbil.classList.remove('animate-pulse');
-                btnAmbil.style.background = 'rgba(255, 255, 255, 0.1)';
-                btnAmbil.style.color = 'var(--text-muted)';
-                btnAmbil.innerHTML = `<i class="fa-solid fa-check-circle"></i> Nomor Anda: ${formatQueue(myTicket)}`;
-                btnAmbil.style.cursor = 'not-allowed';
+                btnAmbil.style.background = 'rgba(59, 130, 246, 0.2)';
+                btnAmbil.style.color = 'var(--text-main)';
+                btnAmbil.style.border = '1px solid var(--primary)';
+                btnAmbil.innerHTML = `<i class="fa-solid fa-ticket"></i> Lihat Tiket Saya: ${formatQueue(myTicket)}`;
+                btnAmbil.style.cursor = 'pointer';
             } else {
-                btnAmbil.disabled = false;
                 btnAmbil.classList.add('animate-pulse');
                 btnAmbil.style.background = '';
                 btnAmbil.style.color = '';
+                btnAmbil.style.border = '';
                 btnAmbil.innerHTML = `<i class="fa-solid fa-ticket"></i> Ambil Nomor Antrian`;
                 btnAmbil.style.cursor = 'pointer';
             }
@@ -125,10 +176,24 @@
 
         // Listen for Realtime Changes from Firebase
         onValue(queueRef, (snapshot) => {
-            const data = snapshot.val() || { current: 0, total: 0, call_trigger: 0 };
+            const data = snapshot.val() || { current: 0, total: 0, call_trigger: 0, current_desk: "" };
             
             // Update Display
             currentQueueEl.innerText = formatQueue(data.current || 0);
+
+            // Update Desk Routing Display
+            const callingDeskContainer = document.getElementById('calling-desk-container');
+            const callingDeskEl = document.getElementById('calling-desk');
+            const queueInstruction = document.getElementById('queue-instruction');
+
+            if ((data.current || 0) > 0 && data.current_desk) {
+                callingDeskEl.innerText = data.current_desk;
+                callingDeskContainer.style.display = 'block';
+                if (queueInstruction) queueInstruction.style.display = 'none';
+            } else {
+                callingDeskContainer.style.display = 'none';
+                if (queueInstruction) queueInstruction.style.display = 'block';
+            }
 
             // Add update animation
             currentQueueEl.classList.add('updating');
@@ -147,12 +212,90 @@
             }
         });
 
+        // Registration Modal Elements
+        const registerModal = document.getElementById('register-modal');
+        const registerForm = document.getElementById('register-form');
+        const btnCloseRegister = document.getElementById('btn-close-register');
+
         // Function to handle "Ambil Tiket"
         btnAmbil.addEventListener('click', async () => {
-            if (localStorage.getItem('my_ticket')) return; // Prevent multiple takes
-            
-            btnAmbil.disabled = true;
-            btnAmbil.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Memproses...`;
+            const myTicket = localStorage.getItem('my_ticket');
+            if (myTicket) {
+                // View existing ticket
+                btnAmbil.disabled = true;
+                const originalText = btnAmbil.innerHTML;
+                btnAmbil.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Memuat Tiket...`;
+                
+                try {
+                    const ticketSnapshot = await get(ref(db, `queue/tickets/${myTicket}`));
+                    if (ticketSnapshot.exists()) {
+                        const ticketData = ticketSnapshot.val();
+                        
+                        // Set current date for ticket
+                        const ticketTime = ticketData.timestamp ? new Date(ticketData.timestamp) : new Date();
+                        ticketDate.innerText = ticketTime.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute:'2-digit' });
+
+                        // Fill Ticket modal details
+                        document.getElementById('ticket-name').innerText = ticketData.name || '-';
+                        const ktp = ticketData.ktp || '';
+                        document.getElementById('ticket-ktp').innerText = ktp ? (ktp.slice(0, 4) + ' •••• •••• ' + ktp.slice(12)) : '-';
+
+                        // Show Ticket Modal
+                        modalTicketNumber.innerText = formatQueue(myTicket);
+                        ticketModal.classList.add('active');
+                    } else {
+                        // Ticket not found in Firebase (e.g. database was reset)
+                        localStorage.removeItem('my_ticket');
+                        checkMyTicket();
+                        alert("Tiket lama Anda tidak ditemukan di server (kemungkinan database di-reset). Silakan ambil tiket baru.");
+                    }
+                } catch (error) {
+                    console.error("Gagal memuat tiket lama:", error);
+                    alert("Koneksi gagal saat memuat tiket.");
+                } finally {
+                    btnAmbil.disabled = false;
+                    checkMyTicket();
+                }
+                return;
+            }
+
+            // Otherwise, open registration modal
+            registerForm.reset();
+            registerModal.classList.add('active');
+        });
+
+        btnCloseRegister.addEventListener('click', () => {
+            registerModal.classList.remove('active');
+        });
+
+        // Function to handle form submission
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const nameVal = document.getElementById('reg-name').value.trim();
+            const ktpVal = document.getElementById('reg-ktp').value.trim();
+            const phoneVal = document.getElementById('reg-phone').value.trim();
+            const addressVal = document.getElementById('reg-address').value.trim();
+
+            if (!nameVal || !ktpVal || !phoneVal || !addressVal) {
+                alert("Semua data harus diisi!");
+                return;
+            }
+
+            if (ktpVal.length !== 16 || isNaN(ktpVal)) {
+                alert("Nomor KTP harus 16 digit angka!");
+                return;
+            }
+
+            if (phoneVal.length < 10 || phoneVal.length > 14 || isNaN(phoneVal)) {
+                alert("Nomor HP harus berupa angka (10-14 digit)!");
+                return;
+            }
+
+            const btnSubmit = document.getElementById('btn-submit-register');
+            const originalSubmitText = btnSubmit.innerHTML;
+            btnSubmit.disabled = true;
+            btnSubmit.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Memproses...`;
 
             try {
                 // Get current total from Firebase
@@ -160,11 +303,20 @@
                 let data = snapshot.val() || {};
                 let total = (data.total || 0) + 1;
 
-                // Update database
-                await update(queueRef, {
-                    total: total,
-                    update_trigger: Date.now()
-                });
+                // Update database atomically
+                const updates = {};
+                updates['total'] = total;
+                updates['update_trigger'] = Date.now();
+                updates[`tickets/${total}`] = {
+                    number: total,
+                    name: nameVal,
+                    ktp: ktpVal,
+                    phone: phoneVal,
+                    address: addressVal,
+                    timestamp: Date.now()
+                };
+
+                await update(queueRef, updates);
                 
                 // Store user's ticket locally and update UI
                 localStorage.setItem('my_ticket', total.toString());
@@ -174,13 +326,23 @@
                 const now = new Date();
                 ticketDate.innerText = now.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute:'2-digit' });
 
-                // Show Modal
+                // Fill Ticket modal details
+                document.getElementById('ticket-name').innerText = nameVal;
+                document.getElementById('ticket-ktp').innerText = ktpVal.slice(0, 4) + ' •••• •••• ' + ktpVal.slice(12);
+
+                // Hide registration modal
+                registerModal.classList.remove('active');
+                btnSubmit.disabled = false;
+                btnSubmit.innerHTML = originalSubmitText;
+
+                // Show Ticket Modal
                 modalTicketNumber.innerText = formatQueue(total);
                 ticketModal.classList.add('active');
             } catch (error) {
                 console.error("Gagal mengambil tiket:", error);
                 alert("Koneksi Firebase gagal. Pastikan Config Firebase sudah diatur.");
-                checkMyTicket(); // Reset button
+                btnSubmit.disabled = false;
+                btnSubmit.innerHTML = originalSubmitText;
             }
         });
 
